@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===== HELPER FUNCTIONS =====
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getChatConversation(conversationId) {
+      return get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+    }
+
+    // ===== USERS COLLECTION =====
+    match /users/{userId} {
+      // Users can read their own profile; admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+      // Anyone can create (signup)
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      // Users update own profile, admins can update any
+      allow update: if isOwner(userId) || isAdmin();
+      // Only admin can delete
+      allow delete: if isAdmin();
+    }
+
+    // ===== PROCEDURES COLLECTION =====
+    match /procedures/{procedureId} {
+      // Public read access to procedures
+      allow read: if isAuthenticated();
+      // Only admin can write
+      allow write: if isAdmin();
+    }
+
+    // ===== APPOINTMENTS COLLECTION =====
+    match /appointments/{appointmentId} {
+      // Users see their own appointments; admin sees all
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      // Users can create their own appointments
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      // Users can update their own; admin can update any
+      allow update: if isAuthenticated() && 
+                       (resource.data.userId == request.auth.uid || isAdmin());
+      // Admin only delete
+      allow delete: if isAdmin();
+    }
+
+    // ===== NOTIFICATIONS COLLECTION =====
+    match /notifications/{notificationId} {
+      // Users see their own notifications
+      allow read: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+      // Can create if for current user or admin
+      allow create: if isAuthenticated() && 
+                       (request.resource.data.userId == request.auth.uid || isAdmin());
+      // Users can update own (mark read); admin can update any
+      allow update: if isAuthenticated() && 
+                       (resource.data.userId == request.auth.uid || isAdmin());
+      // Admin only delete
+      allow delete: if isAdmin();
+    }
+
+    // ===== FAQS COLLECTION =====
+    match /faqs/{faqId} {
+      // All authenticated users can read FAQs
+      allow read: if isAuthenticated();
+      // Only admin can write
+      allow write: if isAdmin();
+    }
+
+    // ===== AI CHAT MESSAGES COLLECTION =====
+    match /ai_chat_messages/{msgId} {
+      // Users see their own messages
+      allow read: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+      // Users can send messages
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      // Users can update own; admin can manage
+      allow update: if isAuthenticated() && 
+                       (resource.data.userId == request.auth.uid || isAdmin());
+      // Admin only delete
+      allow delete: if isAdmin();
+    }
+
+    // ===== CONVERSATIONS COLLECTION =====
+    match /conversations/{conversationId} {
+      // Participants (user or doctor/admin) can read conversation
+      allow read: if isAuthenticated() && 
+                     (getChatConversation(conversationId).userId == request.auth.uid ||
+                      getChatConversation(conversationId).doctorId == request.auth.uid ||
+                      isAdmin());
+      // Authenticated users can create
+      allow create: if isAuthenticated();
+      // Participants or admin can update
+      allow update: if isAuthenticated() && 
+                       (getChatConversation(conversationId).userId == request.auth.uid ||
+                        getChatConversation(conversationId).doctorId == request.auth.uid ||
+                        isAdmin());
+      // Admin only delete
+      allow delete: if isAdmin();
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Participants can read/write messages
+        allow read: if isAuthenticated() && 
+                       (getChatConversation(conversationId).userId == request.auth.uid ||
+                        getChatConversation(conversationId).doctorId == request.auth.uid ||
+                        isAdmin());
+        allow create: if isAuthenticated() && 
+                         (request.resource.data.senderId == request.auth.uid);
+        allow update: if isAuthenticated() && 
+                         (resource.data.senderId == request.auth.uid || isAdmin());
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}

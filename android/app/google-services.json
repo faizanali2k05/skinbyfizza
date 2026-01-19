@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "70669082690",
+    "project_id": "skinbyfizza-e74e2",
+    "storage_bucket": "skinbyfizza-e74e2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:70669082690:android:a393a25b83214e89734ddb",
+        "android_client_info": {
+          "package_name": "com.example.skinbyfizza"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAec5UCzPkg7Oa90sMDeMrBZpZEADZ4Syk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
