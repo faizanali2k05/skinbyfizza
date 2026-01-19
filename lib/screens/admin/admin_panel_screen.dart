@@ -17,31 +17,36 @@ class AdminPanelScreen extends StatefulWidget {
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
   final List<Map<String, dynamic>> _adminOptions = [
     {
-      'title': 'Manage Chats',
+      'title': 'Chats',
+      'subtitle': 'Manage chats between admin and users',
       'icon': Icons.chat_outlined,
       'screen': const AdminChatManagerScreen(),
       'color': Colors.blue,
     },
     {
       'title': 'Manage Appointments',
+      'subtitle': 'Manage appointments of various users',
       'icon': Icons.calendar_month_outlined,
       'screen': const ManageAppointmentsScreen(),
       'color': Colors.green,
     },
     {
       'title': 'Manage Users',
+      'subtitle': 'View and manage application users',
       'icon': Icons.people_alt_outlined,
       'screen': const ManageUsersScreen(),
       'color': Colors.orange,
     },
     {
       'title': 'Manage Procedures',
+      'subtitle': 'Add and manage medical procedures',
       'icon': Icons.medical_services_outlined,
       'screen': const ManageProceduresScreen(),
       'color': Colors.purple,
     },
     {
       'title': 'Manage About Us',
+      'subtitle': 'Edit information about the clinic',
       'icon': Icons.info_outline,
       'screen': const ManageAboutUsScreen(),
       'color': Colors.teal,
@@ -53,7 +58,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Admin Panel',
+        title: const Text('Admin Dashboard',
             style: TextStyle(
                 color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
         centerTitle: true,
@@ -75,61 +80,78 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.1,
-          ),
+        child: ListView.builder(
           itemCount: _adminOptions.length,
           itemBuilder: (context, index) {
             final option = _adminOptions[index];
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => option['screen']),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: option['color'].withOpacity(0.1),
-                        shape: BoxShape.circle,
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => option['screen']),
+                  );
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                      child: Icon(
-                        option['icon'],
-                        size: 32,
-                        color: option['color'],
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: option['color'].withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          option['icon'],
+                          size: 30,
+                          color: option['color'],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      option['title'],
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              option['title'],
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              option['subtitle'],
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
