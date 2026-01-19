@@ -83,10 +83,19 @@ class ChatService {
       await messageRef.set(chatMessage.toMap());
 
       // Update conversation metadata
-      await _firestore.collection('conversations').doc(conversationId).update({
+      final Map<String, dynamic> updateData = {
         'lastMessage': text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      // Increment unread count for the receiver
+      if (receiverId == 'admin_uid') {
+        updateData['unreadCount'] = FieldValue.increment(1);
+      } else {
+        updateData['userUnreadCount'] = FieldValue.increment(1);
+      }
+
+      await _firestore.collection('conversations').doc(conversationId).update(updateData);
 
       // Create notification for the receiver if they're a user (not admin)
       // This is for when admin sends a message to a user
