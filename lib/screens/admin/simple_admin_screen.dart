@@ -8,6 +8,8 @@ import 'manage_appointments_screen.dart';
 import 'admin_chat_manager_screen.dart';
 import 'manage_about_us_screen.dart';
 
+import '../../services/chat_service.dart';
+
 class SimpleAdminScreen extends StatefulWidget {
   const SimpleAdminScreen({super.key});
 
@@ -16,6 +18,7 @@ class SimpleAdminScreen extends StatefulWidget {
 }
 
 class _SimpleAdminScreenState extends State<SimpleAdminScreen> {
+  final ChatService _chatService = ChatService();
   final List<Map<String, dynamic>> _adminOptions = [
     {
       'title': 'Chats',
@@ -116,10 +119,43 @@ class _SimpleAdminScreenState extends State<SimpleAdminScreen> {
                           color: option['color'].withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
-                          option['icon'],
-                          size: 30,
-                          color: option['color'],
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Icon(
+                              option['icon'],
+                              size: 30,
+                              color: option['color'],
+                            ),
+                            if (option['title'] == 'Chats')
+                              StreamBuilder<int>(
+                                stream: _chatService.getTotalUnreadCountStream(),
+                                builder: (context, snapshot) {
+                                  final totalUnread = snapshot.data ?? 0;
+                                  if (totalUnread <= 0) return const SizedBox.shrink();
+                                  
+                                  return Positioned(
+                                    right: -8,
+                                    top: -8,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        totalUnread.toString(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 20),

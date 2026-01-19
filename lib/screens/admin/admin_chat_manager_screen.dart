@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../constants/colors.dart';
 import '../../models/chat_conversation_model.dart';
+import '../../models/user_model.dart';
 import '../../services/chat_service.dart';
 import 'admin_chat_screen.dart';
 
@@ -15,97 +16,172 @@ class AdminChatManagerScreen extends StatefulWidget {
 
 class _AdminChatManagerScreenState extends State<AdminChatManagerScreen> {
   final ChatService _chatService = ChatService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  String _adminId = 'admin_uid'; // Default admin ID
 
   @override
   Widget build(BuildContext context) {
+    final adminId = _auth.currentUser?.uid ?? '';
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Chat Management', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        title: const Text('User Chats',
+            style: TextStyle(
+                color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _chatService.getDoctorConversations(_adminId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+        stream: _firestore.collection('users').snapshots(),
+        builder: (context, userSnapshot) {
+          if (userSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+          if (userSnapshot.hasError) {
+            return Center(child: Text('Error: ${userSnapshot.error}'));
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'No active chats',
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-              ),
-            );
-          }
+          final users = userSnapshot.data?.docs
+                  .map((doc) => UserModel.fromMap(
+                      doc.data() as Map<String, dynamic>, doc.id))
+                  .where((user) => user.uid != adminId) // Don't show admin themselves
+                  .toList() ??
+              [];
 
-          final conversations = snapshot.data!.docs.map((doc) {
-            return ChatConversationModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-          }).toList();
+          return StreamBuilder<QuerySnapshot>(
+            stream: _chatService.getDoctorConversations(adminId),
+            builder: (context, convoSnapshot) {
+              final conversations = {
+                for (var doc in convoSnapshot.data?.docs ?? [])
+                  doc['userId']: ChatConversationModel.fromMap(
+                      doc.data() as Map<String, dynamic>, doc.id)
+              };
 
-          return RefreshIndicator(
-            onRefresh: () async {},
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: conversations.length,
-              itemBuilder: (context, index) {
-                final conversation = conversations[index];
-                return _buildConversationCard(conversation);
-              },
-            ),
+              // Sort users: those with unread messages first, then those with recent messages, then alphabetically
+              users.sort((a, b) {
+                final convoA = conversations[a.uid];
+                final convoB = conversations[b.uid];
+
+                final unreadA = (convoA?.unreadCount ?? 0) > 0;
+                final unreadB = (convoB?.unreadCount ?? 0) > 0;
+
+                if (unreadA != unreadB) {
+                  return unreadA ? -1 : 1;
+                }
+
+                if (convoA != null && convoB != null) {
+                  return convoB.updatedAt.compareTo(convoA.updatedAt);
+                }
+
+                if (convoA != null) return -1;
+                if (convoB != null) return 1;
+
+                return (a.displayName ?? a.email)
+                    .compareTo(b.displayName ?? b.email);
+              });
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: users.length,
+                itemBuilder: (context, index) {
+                  final user = users[index];
+                  final conversation = conversations[user.uid];
+                  return _buildUserChatCard(user, conversation);
+                },
+              );
+            },
           );
         },
       ),
     );
   }
 
-  Widget _buildConversationCard(ChatConversationModel conversation) {
+  Widget _buildUserChatCard(UserModel user, ChatConversationModel? conversation) {
+    final unreadCount = conversation?.unreadCount ?? 0;
+    final lastMessage = conversation?.lastMessage ?? 'No conversation yet';
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Icon(
-            Icons.chat,
-            color: AppColors.primary,
-          ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppColors.primary.withOpacity(0.1),
+              radius: 25,
+              child: Text(
+                (user.displayName ?? user.email).substring(0, 1).toUpperCase(),
+                style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20),
+              ),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 12,
+                    minHeight: 12,
+                  ),
+                ),
+              ),
+          ],
         ),
         title: Text(
-          'User: ${conversation.userId}',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          user.displayName ?? user.email,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         subtitle: Text(
-          conversation.lastMessage.isEmpty 
-              ? 'No messages yet' 
-              : conversation.lastMessage,
+          lastMessage,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: unreadCount > 0 ? Colors.black : Colors.grey,
+            fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (unreadCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  unreadCount.toString(),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+          ],
+        ),
         onTap: () {
-          // Navigate to chat screen
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => AdminChatScreen(
-                userId: conversation.userId,
-                userName: 'User ${conversation.userId.substring(0, 6)}', // Show partial user ID as name
+                userId: user.uid,
+                userName: user.displayName ?? user.email,
               ),
             ),
           );

@@ -21,7 +21,6 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String? _conversationId;
   bool _isLoading = true;
-  String _adminId = 'admin_uid'; // Default admin ID
   String _targetUserId = '';
 
   @override
@@ -36,14 +35,13 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
     if (currentUser == null) return;
 
     if (_targetUserId.isEmpty) {
-      // If no specific user ID provided, try to get current admin's UID
       _targetUserId = currentUser.uid;
     }
 
     try {
       final conversationId = await _chatService.getOrCreateConversation(
         _targetUserId,
-        _adminId,
+        currentUser.uid,
       );
 
       if (mounted) {
@@ -51,6 +49,9 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
           _conversationId = conversationId;
           _isLoading = false;
         });
+        
+        // Mark messages as read when opening the chat
+        await _chatService.markMessagesAsRead(conversationId, true);
       }
     } catch (e) {
       print('Admin chat initialization error: $e');
@@ -71,7 +72,7 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
       await _chatService.sendMessage(
         conversationId: _conversationId!,
         text: text,
-        senderId: _adminId,
+        senderId: currentUser.uid,
         receiverId: _targetUserId,
       );
     } catch (e) {
@@ -131,7 +132,7 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
                   itemBuilder: (context, index) {
                     final data = docs[index].data() as Map<String, dynamic>;
                     final message = ChatMessageModel.fromMap(data, docs[index].id);
-                    final isMe = message.senderId == _adminId;
+                    final isMe = message.senderId == _auth.currentUser?.uid;
                     return _buildMessageBubble(message.text, isMe);
                   },
                 );

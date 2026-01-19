@@ -168,9 +168,12 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
       children: [
         Icon(icon, size: 16, color: AppColors.textSecondary),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: const TextStyle(color: AppColors.textSecondary),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(color: AppColors.textSecondary),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

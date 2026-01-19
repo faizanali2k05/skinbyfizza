@@ -6,6 +6,8 @@ class ChatConversationModel {
   final String doctorId;
   final String lastMessage;
   final Timestamp updatedAt;
+  final int unreadCount; // Unread for Admin
+  final int userUnreadCount; // Unread for User
 
   ChatConversationModel({
     required this.id,
@@ -13,6 +15,8 @@ class ChatConversationModel {
     required this.doctorId,
     required this.lastMessage,
     required this.updatedAt,
+    this.unreadCount = 0,
+    this.userUnreadCount = 0,
   });
 
   factory ChatConversationModel.fromMap(Map<String, dynamic> data, String documentId) {
@@ -22,6 +26,8 @@ class ChatConversationModel {
       doctorId: data['doctorId'] ?? '',
       lastMessage: data['lastMessage'] ?? '',
       updatedAt: data['updatedAt'] ?? Timestamp.now(),
+      unreadCount: data['unreadCount'] ?? 0,
+      userUnreadCount: data['userUnreadCount'] ?? 0,
     );
   }
 
@@ -31,6 +37,8 @@ class ChatConversationModel {
       'doctorId': doctorId,
       'lastMessage': lastMessage,
       'updatedAt': updatedAt,
+      'unreadCount': unreadCount,
+      'userUnreadCount': userUnreadCount,
     };
   }
 }

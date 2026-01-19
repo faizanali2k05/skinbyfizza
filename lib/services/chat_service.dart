@@ -89,7 +89,7 @@ class ChatService {
       };
 
       // Increment unread count for the receiver
-      if (receiverId == 'admin_uid') {
+      if (receiverId == currentUserId) {
         updateData['unreadCount'] = FieldValue.increment(1);
       } else {
         updateData['userUnreadCount'] = FieldValue.increment(1);
@@ -160,27 +160,32 @@ class ChatService {
   // Mark messages as read
   Future<void> markMessagesAsRead(String conversationId, bool isAdmin) async {
     try {
-      // Get unread messages
+      // Update unread count in conversation
+      if (isAdmin) {
+        await _firestore.collection('conversations').doc(conversationId).update({
+          'unreadCount': 0,
+        });
+      } else {
+        await _firestore.collection('conversations').doc(conversationId).update({
+          'userUnreadCount': 0,
+        });
+      }
+
+      // Also mark individual messages as read if we're using that field
       final unreadMessages = await _firestore
           .collection('conversations')
           .doc(conversationId)
           .collection('messages')
           .where('isRead', isEqualTo: false)
-          .where('senderId', isNotEqualTo: currentUserId)
+          .where('receiverId', isEqualTo: isAdmin ? 'admin_uid' : currentUserId)
           .get();
 
-      // Mark each message as read
-      final batch = _firestore.batch();
-      for (var doc in unreadMessages.docs) {
-        batch.update(doc.reference, {'isRead': true});
-      }
-      await batch.commit();
-
-      // Reset unread count in conversation
-      if (isAdmin) {
-        await _firestore.collection('conversations').doc(conversationId).update({
-          'unreadCount': 0,
-        });
+      if (unreadMessages.docs.isNotEmpty) {
+        final batch = _firestore.batch();
+        for (var doc in unreadMessages.docs) {
+          batch.update(doc.reference, {'isRead': true});
+        }
+        await batch.commit();
       }
     } catch (e) {
       print('Error marking messages as read: $e');
