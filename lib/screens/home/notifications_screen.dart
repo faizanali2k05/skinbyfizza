@@ -67,8 +67,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           final notifications = snapshot.data!.docs.map((doc) {
-            return NotificationModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-          }).toList();
+            try {
+              return NotificationModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+            } catch (e) {
+              print('Error parsing notification ${doc.id}: $e');
+              return null;
+            }
+          }).whereType<NotificationModel>().toList();
+
+          if (notifications.isEmpty) {
+            return const Center(
+              child: Text(
+                'No notifications yet',
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              ),
+            );
+          }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -112,13 +126,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ),
                     ),
                   ),
-                  trailing: Text(
-                    _formatDate(notification.createdAt.toDate()),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  trailing: notification.createdAt != null
+                      ? Text(
+                          _formatDate(notification.createdAt.toDate()),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        )
+                      : null,
                   onTap: () async {
                     // Mark as read when tapped
                     if (isUnread) {

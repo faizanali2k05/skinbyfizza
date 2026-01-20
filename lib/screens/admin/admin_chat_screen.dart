@@ -21,6 +21,7 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String? _conversationId;
   bool _isLoading = true;
+  bool _hasError = false;
   String _targetUserId = '';
 
   @override
@@ -32,11 +33,24 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
 
   Future<void> _initializeConversation() async {
     final currentUser = _auth.currentUser;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
+      return;
+    }
 
     if (_targetUserId.isEmpty) {
       _targetUserId = currentUser.uid;
     }
+
+    setState(() {
+      _hasError = false;
+      _isLoading = true;
+    });
 
     try {
       final conversationId = await _chatService.getOrCreateConversation(
@@ -48,6 +62,7 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
         setState(() {
           _conversationId = conversationId;
           _isLoading = false;
+          _hasError = false;
         });
         
         // Mark messages as read when opening the chat
@@ -55,7 +70,12 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
       }
     } catch (e) {
       print('Admin chat initialization error: $e');
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+        });
+      }
     }
   }
 
@@ -83,10 +103,6 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading || _conversationId == null) {
-      return Scaffold(body: const Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -99,49 +115,97 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _chatService.getMessages(_conversationId!),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  print('Admin chat stream error: ${snapshot.error}');
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                
-                if (!snapshot.hasData) {
-                  // Handle empty snapshots to prevent infinite loading
-                  return const Center(child: Text('No messages yet'));
-                }
-
-                final docs = snapshot.data!.docs;
-                if (docs.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'Start a conversation with the user',
-                      style: TextStyle(color: Colors.grey),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _hasError
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Unable to load chat',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Please try again',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: _initializeConversation,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                }
+                  ),
+                )
+              : Column(
+                  children: [
+                    Expanded(
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: _chatService.getMessages(_conversationId!),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            print('Admin chat stream error: ${snapshot.error}');
+                            return Center(child: Text('Error: ${snapshot.error}'));
+                          }
+                          
+                          if (!snapshot.hasData) {
+                            return const Center(child: Text('No messages yet'));
+                          }
 
-                return ListView.builder(
-                  reverse: true, // Opens from latest messages
-                  padding: const EdgeInsets.all(16),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    final message = ChatMessageModel.fromMap(data, docs[index].id);
-                    final isMe = message.senderId == _auth.currentUser?.uid;
-                    return _buildMessageBubble(message.text, isMe);
-                  },
-                );
-              },
-            ),
-          ),
-          _buildInput(),
-        ],
-      ),
+                          final docs = snapshot.data!.docs;
+                          if (docs.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                'Start a conversation with the user',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            );
+                          }
+
+                          return ListView.builder(
+                            reverse: true,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: docs.length,
+                            itemBuilder: (context, index) {
+                              final data = docs[index].data() as Map<String, dynamic>;
+                              final message = ChatMessageModel.fromMap(data, docs[index].id);
+                              final isMe = message.senderId == _auth.currentUser?.uid;
+                              return _buildMessageBubble(message.text, isMe);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    _buildInput(),
+                  ],
+                ),
     );
   }
 
