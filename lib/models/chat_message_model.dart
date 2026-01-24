@@ -6,6 +6,7 @@ class ChatMessageModel {
   final String receiverId;
   final String text;
   final Timestamp createdAt;
+  final bool isRead;
 
   ChatMessageModel({
     required this.id,
@@ -13,6 +14,7 @@ class ChatMessageModel {
     required this.receiverId,
     required this.text,
     required this.createdAt,
+    this.isRead = false,
   });
 
   factory ChatMessageModel.fromMap(Map<String, dynamic> data, String documentId) {
@@ -22,6 +24,7 @@ class ChatMessageModel {
       receiverId: data['receiverId'] ?? '',
       text: data['text'] ?? '',
       createdAt: data['createdAt'] ?? Timestamp.now(),
+      isRead: data['isRead'] ?? false,
     );
   }
 
@@ -31,6 +34,7 @@ class ChatMessageModel {
       'receiverId': receiverId,
       'text': text,
       'createdAt': createdAt,
+      'isRead': isRead,
     };
   }
 }

@@ -4,7 +4,7 @@ import '../../constants/colors.dart';
 import '../../constants/styles.dart';
 import '../../routes/app_routes.dart';
 import '../appointments/book_appointment_screen.dart';
-import '../chat/simple_chat_screen.dart';
+import '../chat/unified_chat_screen.dart';
 
 class ProcedureDetailScreen extends StatelessWidget {
   final ProcedureModel procedure;
@@ -240,7 +240,7 @@ class ProcedureDetailScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const SimpleChatScreen(),
+                        builder: (context) => const UnifiedChatScreen(),
                       ),
                     );
                   },

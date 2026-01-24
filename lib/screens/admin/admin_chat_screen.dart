@@ -19,9 +19,11 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ScrollController _scrollController = ScrollController();
   String? _conversationId;
   bool _isLoading = true;
   String _targetUserId = '';
+  bool _autoScroll = true;
 
   @override
   void initState() {
@@ -32,18 +34,23 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
 
   Future<void> _initializeConversation() async {
     final currentUser = _auth.currentUser;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      print('AdminChatScreen: No current user');
+      return;
+    }
 
     if (_targetUserId.isEmpty) {
       _targetUserId = currentUser.uid;
     }
 
+    print('AdminChatScreen: Initializing conversation for user: $_targetUserId');
     try {
       final conversationId = await _chatService.getOrCreateConversation(
-        _targetUserId,
-        currentUser.uid,
+        _targetUserId,  // userId (the user being chatted with)
+        currentUser.uid,  // doctorId (the admin)
       );
 
+      print('AdminChatScreen: Got conversation ID: $conversationId');
       if (mounted) {
         setState(() {
           _conversationId = conversationId;
@@ -51,12 +58,33 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
         });
         
         // Mark messages as read when opening the chat
+        print('AdminChatScreen: Marking messages as read');
         await _chatService.markMessagesAsRead(conversationId, true);
+        
+        // Auto-scroll after a small delay
+        Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
       }
     } catch (e) {
-      print('Admin chat initialization error: $e');
+      print('AdminChatScreen: Chat initialization error: $e');
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients && _autoScroll) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _sendMessage() async {
@@ -106,12 +134,37 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
               stream: _chatService.getMessages(_conversationId!),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  print('Admin chat stream error: ${snapshot.error}');
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  print('AdminChatScreen stream error: ${snapshot.error}');
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Connection Error',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Unable to load messages. Check your connection.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => setState(() {}),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 }
                 
                 if (!snapshot.hasData) {
-                  // Handle empty snapshots to prevent infinite loading
                   return const Center(child: Text('No messages yet'));
                 }
 
@@ -125,13 +178,21 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
                   );
                 }
 
+                // Schedule scroll to bottom after frame
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_autoScroll && _scrollController.hasClients) {
+                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                  }
+                });
+
                 return ListView.builder(
-                  reverse: true, // Opens from latest messages
+                  controller: _scrollController,
+                  reverse: false, // Don't reverse - show messages chronologically
                   padding: const EdgeInsets.all(16),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    final message = ChatMessageModel.fromMap(data, docs[index].id);
+                    final data = docs[docs.length - 1 - index].data() as Map<String, dynamic>;
+                    final message = ChatMessageModel.fromMap(data, docs[docs.length - 1 - index].id);
                     final isMe = message.senderId == _auth.currentUser?.uid;
                     return _buildMessageBubble(message.text, isMe);
                   },

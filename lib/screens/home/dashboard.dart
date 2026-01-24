@@ -10,7 +10,7 @@ import '../../models/appointment_model.dart';
 import '../../models/procedure_model.dart';
 import '../../services/chat_service.dart';
 import '../../services/notification_service.dart';
-import '../chat/simple_chat_screen.dart';
+import '../chat/unified_chat_screen.dart';
 import '../appointments/appointment_detail_screen.dart';
 import '../appointments/reschedule_screen.dart';
 import '../appointments/book_appointment_screen.dart';
@@ -195,7 +195,7 @@ class _DashboardState extends State<Dashboard> {
               onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SimpleChatScreen()),
+                    MaterialPageRoute(builder: (context) => const UnifiedChatScreen()),
                   );
               },
             ),

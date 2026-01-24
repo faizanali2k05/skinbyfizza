@@ -5,7 +5,7 @@ import '../../constants/colors.dart';
 import '../../models/chat_conversation_model.dart';
 import '../../models/user_model.dart';
 import '../../services/chat_service.dart';
-import 'admin_chat_screen.dart';
+import '../chat/unified_chat_screen.dart';
 
 class AdminChatManagerScreen extends StatefulWidget {
   const AdminChatManagerScreen({super.key});
@@ -179,9 +179,9 @@ class _AdminChatManagerScreenState extends State<AdminChatManagerScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AdminChatScreen(
-                userId: user.uid,
-                userName: user.displayName ?? user.email,
+              builder: (context) => UnifiedChatScreen(
+                otherUserId: user.uid,
+                otherUserName: user.displayName ?? user.email,
               ),
             ),
           );

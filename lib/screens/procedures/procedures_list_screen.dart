@@ -5,7 +5,7 @@ import '../../constants/colors.dart';
 import '../../constants/styles.dart';
 import '../../routes/app_routes.dart';
 import '../../models/procedure_model.dart';
-import '../chat/simple_chat_screen.dart';
+import '../chat/unified_chat_screen.dart';
 
 class ProceduresListScreen extends StatefulWidget {
   final bool isAdmin;
@@ -167,7 +167,7 @@ class _ProceduresListScreenState extends State<ProceduresListScreen> {
           Navigator.push(
             context, 
             MaterialPageRoute(
-              builder: (context) => const SimpleChatScreen(),
+              builder: (context) => const UnifiedChatScreen(),
             ),
           );
         }

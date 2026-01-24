@@ -18,10 +18,12 @@ class _DoctorChatScreenState extends State<DoctorChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ScrollController _scrollController = ScrollController();
   String? _conversationId;
   bool _isLoading = true;
   String _currentUserId = '';
   String _doctorId = 'admin_uid'; // Default doctor ID
+  bool _autoScroll = true;
 
   @override
   void initState() {
@@ -48,11 +50,31 @@ class _DoctorChatScreenState extends State<DoctorChatScreen> {
           _conversationId = conversationId;
           _isLoading = false;
         });
+        
+        // Auto-scroll after a small delay
+        Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
       }
     } catch (e) {
       print('Doctor chat initialization error: $e');
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients && _autoScroll) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _sendMessage() async {
@@ -107,7 +129,6 @@ class _DoctorChatScreenState extends State<DoctorChatScreen> {
                 }
                 
                 if (!snapshot.hasData) {
-                  // Handle empty snapshots to prevent infinite loading
                   return const Center(child: Text('No messages yet'));
                 }
 
@@ -121,13 +142,21 @@ class _DoctorChatScreenState extends State<DoctorChatScreen> {
                   );
                 }
 
+                // Schedule scroll to bottom after frame
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_autoScroll && _scrollController.hasClients) {
+                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                  }
+                });
+
                 return ListView.builder(
-                  reverse: true, // Opens from latest messages
+                  controller: _scrollController,
+                  reverse: false, // Don't reverse - show messages chronologically
                   padding: const EdgeInsets.all(16),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    final message = ChatMessageModel.fromMap(data, docs[index].id);
+                    final data = docs[docs.length - 1 - index].data() as Map<String, dynamic>;
+                    final message = ChatMessageModel.fromMap(data, docs[docs.length - 1 - index].id);
                     final isMe = message.senderId == _currentUserId;
                     return _buildMessageBubble(message.text, isMe);
                   },

@@ -20,6 +20,14 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/conversations/$(conversationId)).data;
     }
 
+    function isConversationParticipant(conversationId) {
+      let convDoc = get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+      return isAuthenticated() && 
+             (convDoc.userId == request.auth.uid ||
+              convDoc.doctorId == request.auth.uid ||
+              isAdmin());
+    }
+
     // ===== USERS COLLECTION =====
     match /users/{userId} {
       // Users can read their own profile; admins can read all
@@ -96,27 +104,18 @@ service cloud.firestore {
     // ===== CONVERSATIONS COLLECTION =====
     match /conversations/{conversationId} {
       // Participants (user or doctor/admin) can read conversation
-      allow read: if isAuthenticated() && 
-                     (getChatConversation(conversationId).userId == request.auth.uid ||
-                      getChatConversation(conversationId).doctorId == request.auth.uid ||
-                      isAdmin());
+      allow read: if isConversationParticipant(conversationId);
       // Authenticated users can create
       allow create: if isAuthenticated();
       // Participants or admin can update
-      allow update: if isAuthenticated() && 
-                       (getChatConversation(conversationId).userId == request.auth.uid ||
-                        getChatConversation(conversationId).doctorId == request.auth.uid ||
-                        isAdmin());
+      allow update: if isConversationParticipant(conversationId);
       // Admin only delete
       allow delete: if isAdmin();
       
       // Messages subcollection
       match /messages/{messageId} {
         // Participants can read/write messages
-        allow read: if isAuthenticated() && 
-                       (getChatConversation(conversationId).userId == request.auth.uid ||
-                        getChatConversation(conversationId).doctorId == request.auth.uid ||
-                        isAdmin());
+        allow read: if isConversationParticipant(conversationId);
         allow create: if isAuthenticated() && 
                          (request.resource.data.senderId == request.auth.uid);
         allow update: if isAuthenticated() && 

@@ -4,7 +4,7 @@ import '../screens/auth/sign_up_screen.dart';
 import '../screens/auth/password_recovery_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/procedures/procedures_list_screen.dart';
-import '../screens/chat/simple_chat_screen.dart';
+import '../screens/chat/unified_chat_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/admin/simple_admin_screen.dart';
 import '../screens/appointments/appointments_list_screen.dart';
@@ -30,7 +30,7 @@ class AppRoutes {
     passwordRecovery: (context) => const PasswordRecoveryScreen(),
     home: (context) => const HomeScreen(),
     procedures: (context) => const ProceduresListScreen(),
-    aiChat: (context) => const SimpleChatScreen(),
+    aiChat: (context) => const UnifiedChatScreen(),
     profile: (context) => const ProfileScreen(),
     adminPanel: (context) => const SimpleAdminScreen(),
     appointments: (context) => const AppointmentsListScreen(),

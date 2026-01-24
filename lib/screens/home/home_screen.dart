@@ -5,7 +5,7 @@ import '../../widgets/bottom_nav_bar.dart';
 import '../../services/chat_service.dart';
 import 'dashboard.dart';
 import '../procedures/procedures_list_screen.dart';
-import '../chat/simple_chat_screen.dart';
+import '../chat/unified_chat_screen.dart';
 import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,11 +18,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  // Original screens structure: Home, Procedures, Shop (external), AI Chat, Profile
+  // Original screens structure: Home, Procedures, Shop (external), Chat, Profile
   final List<Widget> _screens = [
     const Dashboard(),
     const ProceduresListScreen(),
-    const SimpleChatScreen(),
+    const UnifiedChatScreen(),
     const ProfileScreen(),
   ];
 

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/chat_message_model.dart';
 import '../models/chat_conversation_model.dart';
+import 'notification_service.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -22,10 +23,12 @@ class ChatService {
           .get();
 
       if (existingConversation.docs.isNotEmpty) {
+        print('ChatService: Found existing conversation: ${existingConversation.docs.first.id}');
         return existingConversation.docs.first.id;
       }
+      print('ChatService: No existing conversation found for userId=$userId, doctorId=$doctorId');
     } catch (e) {
-      print('Warning: Could not read existing conversations: $e');
+      print('ChatService: Error reading existing conversations: $e');
     }
 
     try {
@@ -47,12 +50,17 @@ class ChatService {
 
   // Stream of messages for a specific conversation
   Stream<QuerySnapshot> getMessages(String conversationId) {
+    print('ChatService: Getting messages for conversation: $conversationId');
+    print('ChatService: Current user: $currentUserId');
     return _firestore
         .collection('conversations')
         .doc(conversationId)
         .collection('messages')
         .orderBy('createdAt', descending: true)
-        .snapshots();
+        .snapshots()
+        .handleError((error) {
+          print('ChatService: Error fetching messages: $error');
+        });
   }
 
   // Send a message
@@ -89,7 +97,9 @@ class ChatService {
       };
 
       // Increment unread count for the receiver
-      if (receiverId == currentUserId) {
+      // If receiver is admin (admin_uid), increment unreadCount
+      // If receiver is a user, increment userUnreadCount
+      if (receiverId == 'admin_uid') {
         updateData['unreadCount'] = FieldValue.increment(1);
       } else {
         updateData['userUnreadCount'] = FieldValue.increment(1);
@@ -97,23 +107,45 @@ class ChatService {
 
       await _firestore.collection('conversations').doc(conversationId).update(updateData);
 
-      // Create notification for the receiver if they're a user (not admin)
-      // This is for when admin sends a message to a user
-      if (receiverId != 'admin_uid') {
-        try {
-          await _firestore.collection('notifications').add({
-            'userId': receiverId,
-            'title': 'New Message from Doctor',
-            'message': text.trim().length > 100 
-              ? '${text.trim().substring(0, 100)}...' 
-              : text.trim(),
-            'type': 'chat',
-            'createdAt': FieldValue.serverTimestamp(),
-            'isRead': false,
-          });
-        } catch (notifError) {
-          print('Warning: Could not create chat notification: $notifError');
+      // Send notification to the receiver
+      try {
+        // Get receiver's name/email for notification
+        final receiverDoc = await _firestore.collection('users').doc(receiverId).get();
+        final receiverName = (receiverDoc.data() as Map<String, dynamic>?)?['displayName'] ?? 'Doctor';
+        
+        // Determine notification title based on who's sending
+        String notificationTitle = 'New Message from $receiverName';
+        if (receiverId == 'admin_uid') {
+          // Message is being sent TO admin
+          notificationTitle = 'New Message from User';
+        } else if (senderId == 'admin_uid') {
+          // Message is FROM admin TO user
+          notificationTitle = 'New Message from Doctor';
         }
+        
+        // Show instant local notification
+        await NotificationService().showInstantNotification(
+          title: notificationTitle,
+          body: text.trim().length > 100 
+            ? '${text.trim().substring(0, 100)}...' 
+            : text.trim(),
+        );
+        
+        // Also save to Firestore notifications collection for UI display
+        await _firestore.collection('notifications').add({
+          'userId': receiverId,
+          'title': notificationTitle,
+          'message': text.trim().length > 100 
+            ? '${text.trim().substring(0, 100)}...' 
+            : text.trim(),
+          'type': 'chat',
+          'conversationId': conversationId,
+          'senderId': senderId,
+          'createdAt': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+      } catch (notifError) {
+        print('Warning: Could not create chat notification: $notifError');
       }
     } catch (e) {
       print('Error sending message: $e');
@@ -172,12 +204,15 @@ class ChatService {
       }
 
       // Also mark individual messages as read if we're using that field
+      final currentUserIdValue = currentUserId;
+      if (currentUserIdValue == null) return;
+      
       final unreadMessages = await _firestore
           .collection('conversations')
           .doc(conversationId)
           .collection('messages')
           .where('isRead', isEqualTo: false)
-          .where('receiverId', isEqualTo: isAdmin ? 'admin_uid' : currentUserId)
+          .where('receiverId', isEqualTo: isAdmin ? currentUserIdValue : 'admin_uid')
           .get();
 
       if (unreadMessages.docs.isNotEmpty) {

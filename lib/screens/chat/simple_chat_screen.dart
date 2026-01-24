@@ -43,11 +43,14 @@ class _SimpleChatScreenState extends State<SimpleChatScreen> {
     try {
       final user = _auth.currentUser;
       if (user == null) {
+        print('SimpleChatScreen: No current user');
         setState(() => _initError = true);
         return;
       }
 
+      print('SimpleChatScreen: Initializing doctor chat for user: ${user.uid}');
       final convId = await _chatService.getOrCreateConversation(user.uid, 'admin_uid');
+      print('SimpleChatScreen: Got conversation ID: $convId');
       if (mounted) {
         setState(() {
           _conversationId = convId;
@@ -55,7 +58,7 @@ class _SimpleChatScreenState extends State<SimpleChatScreen> {
         });
       }
     } catch (e) {
-      print('Doctor Chat Init Error: $e');
+      print('SimpleChatScreen: Doctor Chat Init Error: $e');
       if (mounted) {
         setState(() => _initError = true);
       }
@@ -172,13 +175,31 @@ class _SimpleChatScreenState extends State<SimpleChatScreen> {
                     stream: _chatService.getAiMessages(),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
+                        print('SimpleChatScreen AI Error: ${snapshot.error}');
                         return Center(
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              'Unable to load messages: ${snapshot.error}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.red),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Connection Error',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Unable to load messages. Check your connection.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () => setState(() {}),
+                                  child: const Text('Retry'),
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -243,8 +264,33 @@ class _SimpleChatScreenState extends State<SimpleChatScreen> {
                       }
 
                       if (snapshot.hasError) {
+                        print('SimpleChatScreen Doctor Error: ${snapshot.error}');
                         return Center(
-                          child: Text('Error: ${snapshot.error}'),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Connection Error',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Unable to load chat. Check your connection.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _initializeDoctorChat,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
                         );
                       }
 
