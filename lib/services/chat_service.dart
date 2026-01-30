@@ -1,338 +1,439 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import '../models/chat_message_model.dart';
 import '../models/chat_conversation_model.dart';
-import 'notification_service.dart';
+import '../models/notification_model.dart';
 
+/// Chat Service for real-time doctor-patient conversations
+/// Handles conversation creation, messaging, and notifications
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Get current user ID
   String? get currentUserId => _auth.currentUser?.uid;
 
-  // Get or create chat conversation for a user and doctor
-  Future<String> getOrCreateConversation(String userId, String doctorId) async {
+  // ==================== Conversation Management ======================
+
+  /// Get or create conversation between user and admin
+  /// Returns conversation ID
+  Future<String?> getOrCreateConversation(String userId, String adminId) async {
     try {
-      // Try to find existing conversation between user and doctor
-      final existingConversation = await _firestore
+      // Try to find existing conversation
+      final existing = await _firestore
           .collection('conversations')
           .where('userId', isEqualTo: userId)
-          .where('doctorId', isEqualTo: doctorId)
+          .where('adminId', isEqualTo: adminId)
           .limit(1)
           .get();
 
-      if (existingConversation.docs.isNotEmpty) {
-        print('ChatService: Found existing conversation: ${existingConversation.docs.first.id}');
-        return existingConversation.docs.first.id;
+      if (existing.docs.isNotEmpty) {
+        return existing.docs.first.id;
       }
-      print('ChatService: No existing conversation found for userId=$userId, doctorId=$doctorId');
-    } catch (e) {
-      print('ChatService: Error reading existing conversations: $e');
-    }
 
-    try {
       // Create new conversation
-      final docRef = _firestore.collection('conversations').doc();
-      await docRef.set({
-        'userId': userId,
-        'doctorId': doctorId,
-        'lastMessage': '',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      final conversation = ChatConversationModel(
+        id: '',
+        userId: userId,
+        adminId: adminId,
+      );
+
+      final docRef = await _firestore
+          .collection('conversations')
+          .add(conversation.toMap());
 
       return docRef.id;
     } catch (e) {
-      print('Error creating conversation: $e');
-      rethrow;
+      debugPrint('Get or create conversation error: $e');
+      return null;
     }
   }
 
-  // Stream of messages for a specific conversation
-  Stream<QuerySnapshot> getMessages(String conversationId) {
-    print('ChatService: Getting messages for conversation: $conversationId');
-    print('ChatService: Current user: $currentUserId');
+  /// Get user's conversations (real-time, sorted by recent)
+  Stream<List<ChatConversationModel>> getUserConversationsStream(String userId) {
+    return _firestore
+        .collection('conversations')
+        .where('userId', isEqualTo: userId)
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatConversationModel.fromSnapshot(doc))
+            .toList())
+        .handleError((error) {
+          debugPrint('Get user conversations error: $error');
+          return <ChatConversationModel>[];
+        });
+  }
+
+  /// Get admin's conversations (admin only, real-time, sorted by recent)
+  Stream<List<ChatConversationModel>> getAdminConversationsStream(String adminId) {
+    return _firestore
+        .collection('conversations')
+        .where('adminId', isEqualTo: adminId)
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatConversationModel.fromSnapshot(doc))
+            .toList())
+        .handleError((error) {
+          debugPrint('Get admin conversations error: $error');
+          return <ChatConversationModel>[];
+        });
+  }
+
+  /// Get single conversation by ID
+  Future<ChatConversationModel?> getConversationById(String conversationId) async {
+    try {
+      final doc =
+          await _firestore.collection('conversations').doc(conversationId).get();
+
+      if (!doc.exists) return null;
+      return ChatConversationModel.fromSnapshot(doc);
+    } catch (e) {
+      debugPrint('Get conversation by ID error: $e');
+      return null;
+    }
+  }
+
+  // ==================== Messages (Real-time) ======================
+
+  /// Get messages from conversation (real-time, ordered ascending by time)
+  /// Oldest messages first, new messages appended at end
+  Stream<List<ChatMessageModel>> getConversationMessagesStream(
+      String conversationId) {
+    return _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatMessageModel.fromSnapshot(doc))
+            .toList())
+        .handleError((error) {
+          debugPrint('Get conversation messages error: $error');
+          return <ChatMessageModel>[];
+        });
+  }
+
+  /// Get single message by ID
+  Future<ChatMessageModel?> getMessageById(
+    String conversationId,
+    String messageId,
+  ) async {
+    try {
+      final doc = await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('messages')
+          .doc(messageId)
+          .get();
+
+      if (!doc.exists) return null;
+      return ChatMessageModel.fromSnapshot(doc);
+    } catch (e) {
+      debugPrint('Get message by ID error: $e');
+      return null;
+    }
+  }
+
+  // ==================== Send Message ======================
+
+  /// Send message in conversation
+  /// Automatically updates conversation metadata and creates notification
+  /// Returns null on success, error message on failure
+  Future<String?> sendMessage({
+    required String conversationId,
+    required String text,
+    required String senderId,
+    required String senderName,
+    required String senderRole,
+  }) async {
+    try {
+      if (text.trim().isEmpty) return 'Message cannot be empty.';
+
+      // Create message
+      final message = ChatMessageModel(
+        id: '', // Firestore generates ID
+        senderId: senderId,
+        senderName: senderName,
+        senderRole: senderRole,
+        text: text.trim(),
+      );
+
+      // Add to messages subcollection
+      await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('messages')
+          .add(message.toMap());
+
+      // Update conversation metadata
+      await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .update({
+            'lastMessage': text.trim(),
+            'lastSenderId': senderId,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      // Create notification for recipient
+      final conversation = await getConversationById(conversationId);
+      if (conversation != null) {
+        final recipientId =
+            senderRole == 'admin' ? conversation.userId : conversation.adminId;
+
+        final notification = NotificationModel(
+          id: '',
+          userId: recipientId,
+          title: senderRole == 'admin' ? 'New Message from Doctor' : 'New Message',
+          message: text.trim().length > 100
+              ? '${text.trim().substring(0, 100)}...'
+              : text.trim(),
+          type: 'message',
+          conversationId: conversationId,
+        );
+
+        await _firestore
+            .collection('notifications')
+            .add(notification.toMap());
+      }
+
+      return null; // Success
+    } catch (e) {
+      return 'Error sending message: $e';
+    }
+  }
+
+  // ==================== Delete Message ======================
+
+  /// Delete message (sender or admin only)
+  Future<String?> deleteMessage(String conversationId, String messageId) async {
+    try {
+      await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('messages')
+          .doc(messageId)
+          .delete();
+
+      return null; // Success
+    } catch (e) {
+      return 'Error deleting message: $e';
+    }
+  }
+
+  // ==================== Unread Count (Optional) ======================
+
+  /// Get unread message count for user in a conversation
+  /// (For badge or notification display)
+  /// This requires storing read status in messages subcollection
+  /// For now, you can use conversation.updatedAt to show "has unread"
+  Future<int> getUnreadCountForConversation(
+    String conversationId,
+    String userId,
+  ) async {
+    try {
+      final conversation = await getConversationById(conversationId);
+      if (conversation == null) return 0;
+
+      // Count messages from the other person that haven't been read
+      // This would require adding 'isRead' field to messages
+      // For MVP, you can just count total messages
+      final messages = await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('messages')
+          .get();
+
+      return messages.docs.length;
+    } catch (e) {
+      debugPrint('Get unread count error: $e');
+      return 0;
+    }
+  }
+
+  /// Get doctor conversations (admin view) - Real-time stream
+  Stream<List<ChatConversationModel>> getDoctorConversationsStream(String doctorId) {
+    return _firestore
+        .collection('conversations')
+        .where('adminId', isEqualTo: doctorId)
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatConversationModel.fromSnapshot(doc))
+            .toList())
+        .handleError((error) {
+          debugPrint('Get doctor conversations stream error: $error');
+          return <ChatConversationModel>[];
+        });
+  }
+
+  /// Get doctor conversations (admin view) - Future-based version
+  Future<List<ChatConversationModel>> getDoctorConversations(String doctorId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('conversations')
+          .where('adminId', isEqualTo: doctorId)
+          .orderBy('updatedAt', descending: true)
+          .get();
+      return snapshot.docs
+          .map((doc) => ChatConversationModel.fromSnapshot(doc))
+          .toList();
+    } catch (e) {
+      debugPrint('Get doctor conversations error: $e');
+      return [];
+    }
+  }
+
+  /// Mark messages as read
+  Future<void> markMessagesAsRead(String conversationId) async {
+    try {
+      final messages = await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('messages')
+          .get();
+
+      for (var doc in messages.docs) {
+        await doc.reference.update({'isRead': true});
+      }
+    } catch (e) {
+      debugPrint('Mark messages as read error: $e');
+    }
+  }
+
+  /// Get messages (streaming - real-time)
+  Stream<List<ChatMessageModel>> getMessagesStream(String conversationId) {
     return _firestore
         .collection('conversations')
         .doc(conversationId)
         .collection('messages')
         .orderBy('createdAt', descending: true)
         .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatMessageModel.fromSnapshot(doc))
+            .toList())
         .handleError((error) {
-          print('ChatService: Error fetching messages: $error');
+          debugPrint('Get messages stream error: $error');
+          return <ChatMessageModel>[];
         });
   }
 
-  // Send a message
-  Future<void> sendMessage({
-    required String conversationId,
-    required String text,
-    required String senderId,
-    required String receiverId,
-  }) async {
-    if (text.trim().isEmpty) return;
-
+  /// Get messages (non-streaming version)
+  Future<List<ChatMessageModel>> getMessages(String conversationId) async {
     try {
-      // Add message to conversation
-      final messageRef = _firestore
+      final snapshot = await _firestore
           .collection('conversations')
           .doc(conversationId)
           .collection('messages')
-          .doc();
+          .orderBy('createdAt', descending: true)
+          .get();
+      return snapshot.docs
+          .map((doc) => ChatMessageModel.fromSnapshot(doc))
+          .toList();
+    } catch (e) {
+      debugPrint('Get messages error: $e');
+      return [];
+    }
+  }
 
-      final chatMessage = ChatMessageModel(
-        id: messageRef.id,
+  /// Send AI message
+  Future<String?> sendAiMessage({
+    required String conversationId,
+    required String senderId,
+    required String senderName,
+    required String senderRole,
+    required String text,
+  }) async {
+    try {
+      final message = ChatMessageModel(
+        id: '',
         senderId: senderId,
-        receiverId: receiverId,
-        text: text.trim(),
-        createdAt: Timestamp.now(),
+        senderName: senderName,
+        senderRole: senderRole,
+        text: text,
       );
 
-      await messageRef.set(chatMessage.toMap());
-
-      // Update conversation metadata
-      final Map<String, dynamic> updateData = {
-        'lastMessage': text.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      // Increment unread count for the receiver
-      // If receiver is admin (admin_uid), increment unreadCount
-      // If receiver is a user, increment userUnreadCount
-      if (receiverId == 'admin_uid') {
-        updateData['unreadCount'] = FieldValue.increment(1);
-      } else {
-        updateData['userUnreadCount'] = FieldValue.increment(1);
-      }
-
-      await _firestore.collection('conversations').doc(conversationId).update(updateData);
-
-      // Send notification to the receiver
-      try {
-        // Get receiver's name/email for notification
-        final receiverDoc = await _firestore.collection('users').doc(receiverId).get();
-        final receiverName = (receiverDoc.data() as Map<String, dynamic>?)?['displayName'] ?? 'Doctor';
-        
-        // Determine notification title based on who's sending
-        String notificationTitle = 'New Message from $receiverName';
-        if (receiverId == 'admin_uid') {
-          // Message is being sent TO admin
-          notificationTitle = 'New Message from User';
-        } else if (senderId == 'admin_uid') {
-          // Message is FROM admin TO user
-          notificationTitle = 'New Message from Doctor';
-        }
-        
-        // Show instant local notification
-        await NotificationService().showInstantNotification(
-          title: notificationTitle,
-          body: text.trim().length > 100 
-            ? '${text.trim().substring(0, 100)}...' 
-            : text.trim(),
-        );
-        
-        // Also save to Firestore notifications collection for UI display
-        await _firestore.collection('notifications').add({
-          'userId': receiverId,
-          'title': notificationTitle,
-          'message': text.trim().length > 100 
-            ? '${text.trim().substring(0, 100)}...' 
-            : text.trim(),
-          'type': 'chat',
-          'conversationId': conversationId,
-          'senderId': senderId,
-          'createdAt': FieldValue.serverTimestamp(),
-          'isRead': false,
-        });
-      } catch (notifError) {
-        print('Warning: Could not create chat notification: $notifError');
-      }
-    } catch (e) {
-      print('Error sending message: $e');
-      rethrow;
-    }
-  }
-
-  // Get all conversations for a user
-  Stream<QuerySnapshot> getUserConversations(String userId) {
-    return _firestore
-        .collection('conversations')
-        .where('userId', isEqualTo: userId)
-        .orderBy('updatedAt', descending: true)
-        .snapshots();
-  }
-
-  // Get all conversations for a doctor/admin
-  Stream<QuerySnapshot> getDoctorConversations(String doctorId) {
-    return _firestore
-        .collection('conversations')
-        .where('doctorId', isEqualTo: doctorId)
-        .orderBy('updatedAt', descending: true)
-        .snapshots();
-  }
-
-  // Get conversation by user and doctor IDs
-  Future<String?> getConversationId(String userId, String doctorId) async {
-    final conversations = await _firestore
-        .collection('conversations')
-        .where('userId', isEqualTo: userId)
-        .where('doctorId', isEqualTo: doctorId)
-        .limit(1)
-        .get();
-
-    if (conversations.docs.isEmpty) return null;
-    return conversations.docs.first.id;
-  }
-
-  // Get conversation details
-  Stream<DocumentSnapshot> getConversation(String conversationId) {
-    return _firestore.collection('conversations').doc(conversationId).snapshots();
-  }
-
-  // Mark messages as read
-  Future<void> markMessagesAsRead(String conversationId, bool isAdmin) async {
-    try {
-      // Update unread count in conversation
-      if (isAdmin) {
-        await _firestore.collection('conversations').doc(conversationId).update({
-          'unreadCount': 0,
-        });
-      } else {
-        await _firestore.collection('conversations').doc(conversationId).update({
-          'userUnreadCount': 0,
-        });
-      }
-
-      // Also mark individual messages as read if we're using that field
-      final currentUserIdValue = currentUserId;
-      if (currentUserIdValue == null) return;
-      
-      final unreadMessages = await _firestore
+      await _firestore
           .collection('conversations')
           .doc(conversationId)
           .collection('messages')
-          .where('isRead', isEqualTo: false)
-          .where('receiverId', isEqualTo: isAdmin ? currentUserIdValue : 'admin_uid')
-          .get();
+          .add(message.toMap());
 
-      if (unreadMessages.docs.isNotEmpty) {
-        final batch = _firestore.batch();
-        for (var doc in unreadMessages.docs) {
-          batch.update(doc.reference, {'isRead': true});
-        }
-        await batch.commit();
-      }
+      return null;
     } catch (e) {
-      print('Error marking messages as read: $e');
+      return 'Error sending AI message: $e';
     }
   }
 
-  // Get total unread count for admin
-  Future<int> getTotalUnreadCount() async {
-    try {
-      final conversations = await _firestore.collection('conversations').get();
-      int totalUnread = 0;
-      
-      for (var doc in conversations.docs) {
-        final data = doc.data();
-        totalUnread += (data['unreadCount'] as int?) ?? 0;
-      }
-      
-      return totalUnread;
-    } catch (e) {
-      print('Error getting unread count: $e');
-      return 0;
-    }
-  }
-
-  // Stream of total unread count (Admin)
-  Stream<int> getTotalUnreadCountStream() {
-    return _firestore.collection('conversations').snapshots().map((snapshot) {
-      int totalUnread = 0;
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        totalUnread += (data['unreadCount'] as int?) ?? 0;
-      }
-      return totalUnread;
-    });
-  }
-
-  // Stream of unread count for User (New messages from Admin)
-  Stream<int> getUserUnreadCountStream(String userId) {
+  /// Get AI messages
+  Stream<List<ChatMessageModel>> getAiMessages(String conversationId) {
     return _firestore
         .collection('conversations')
-        .where('userId', isEqualTo: userId)
-        .limit(1)
+        .doc(conversationId)
+        .collection('messages')
+        .orderBy('createdAt', descending: true)
         .snapshots()
-        .asyncExpand((conversationSnapshot) async* {
-          if (conversationSnapshot.docs.isEmpty) {
-            yield 0;
-            return;
-          }
-          
-          final conversationId = conversationSnapshot.docs.first.id;
-          yield* _firestore
-              .collection('conversations')
-              .doc(conversationId)
-              .collection('messages')
-              .where('isRead', isEqualTo: false)
-              .where('senderId', isNotEqualTo: userId) // Messages NOT sent by user (i.e. from Admin)
-              .snapshots()
-              .map((snapshot) => snapshot.docs.length);
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatMessageModel.fromSnapshot(doc))
+            .toList())
+        .handleError((error) {
+          debugPrint('Get AI messages error: $error');
+          return <ChatMessageModel>[];
         });
   }
 
-  // For AI Chat (Root Collection)
-  Stream<QuerySnapshot> getAiMessages() {
-    final uid = currentUserId;
-    if (uid == null) return const Stream.empty();
-
-    return _firestore
-        .collection('ai_chat_messages')
-        .where('userId', isEqualTo: uid)
-        .orderBy('timestamp', descending: true)
-        .snapshots();
-  }
-
-  /// Send an AI chat message. Returns true on success, false on failure.
-  Future<bool> sendAiMessage(String message, bool isUser) async {
-    final uid = currentUserId;
-    if (uid == null) return false;
-
-    try {
-      await _firestore
-          .collection('ai_chat_messages')
-          .add({
-        'userId': uid,
-        'message': message,
-        'isUser': isUser,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      print('Error sending AI message: $e');
-      return false;
-    }
-  }
-
-  // Update user profile in conversation (for sync with Profile Edit)
-  Future<void> updateConversationUserProfile(String userId, String newName, String newEmail) async {
+  /// Get total unread count for user across all conversations
+  Future<int> getTotalUnreadCountStream(String userId) async {
     try {
       final conversations = await _firestore
           .collection('conversations')
           .where('userId', isEqualTo: userId)
           .get();
 
-      final batch = _firestore.batch();
+      int totalUnread = 0;
       for (var doc in conversations.docs) {
-        batch.update(doc.reference, {
-          'userName': newName,
-          'userEmail': newEmail,
-        });
+        final conv = ChatConversationModel.fromSnapshot(doc);
+        totalUnread += conv.unreadCount;
       }
-      await batch.commit();
+
+      return totalUnread;
     } catch (e) {
-      print('Error updating conversation profile: $e');
+      debugPrint('Get total unread count error: $e');
+      return 0;
+    }
+  }
+
+  /// Get user unread count stream
+  Stream<int> getUserUnreadCountStream(String userId) {
+    return _firestore
+        .collection('conversations')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      int totalUnread = 0;
+      for (var doc in snapshot.docs) {
+        final conv = ChatConversationModel.fromSnapshot(doc);
+        totalUnread += conv.unreadCount;
+      }
+      return totalUnread;
+    }).handleError((error) {
+      debugPrint('Get user unread count stream error: $error');
+      return 0;
+    });
+  }
+
+  /// Update conversation user profile
+  Future<void> updateConversationUserProfile(String conversationId, String userName) async {
+    try {
+      await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .update({'lastSenderId': userName});
+    } catch (e) {
+      debugPrint('Update conversation user profile error: $e');
     }
   }
 }

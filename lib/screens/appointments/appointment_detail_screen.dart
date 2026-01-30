@@ -74,7 +74,7 @@ class AppointmentDetailScreen extends StatelessWidget {
                         _buildStatusChip(appointment.status),
                         const SizedBox(height: 16),
                         _buildDetailItem(Icons.today, 'Created At', 
-                          _formatDate(appointment.createdAt.toDate())),
+                          _formatDate(appointment.createdAt ?? DateTime.now())),
                       ],
                     ),
                   ),

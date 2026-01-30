@@ -136,10 +136,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       // Book the appointment
       await _appointmentService.createAppointment(
         procedureId: _selectedProcedure!.id,
-        procedureName: _selectedProcedure!.title,
+        procedureName: _selectedProcedure!.name,
         appointmentDate: appointmentDate,
         appointmentTime: appointmentTime,
-        doctorId: 'admin_uid', // Using default admin ID
       );
       
       if (mounted) {
@@ -201,7 +200,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   items: _procedures.map((ProcedureModel procedure) {
                     return DropdownMenuItem<ProcedureModel>(
                       value: procedure,
-                      child: Text(procedure.title),
+                      child: Text(procedure.name),
                     );
                   }).toList(),
                   onChanged: (ProcedureModel? newValue) {

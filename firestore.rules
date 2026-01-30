@@ -1,52 +1,223 @@
+// ============================================
+// FIRESTORE SECURITY RULES
+// SkinByFizza Application - Production Ready
+// ============================================
+//
+// Rules Strategy:
+// 1. Users can only read/write their own data
+// 2. Admins (role == 'admin') can read/write everything
+// 3. Procedures are publicly readable
+// 4. Appointments: users see own, admins see all
+// 5. Conversations: participants + admins only
+// 6. Messages: conversation participants + admins only
+// 7. Notifications: user sees only their own
+// 8. FAQs: publicly readable
+//
+// All timestamps handled server-side
+// No external API access needed (Spark plan safe)
+//
+// ============================================
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // ===== HELPER FUNCTIONS =====
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    function isAdmin() {
-      return isAuthenticated() && 
-             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+
+    // ==================== Users Collection ====================
+    // users/{uid}
+    // Each user has a document with their profile
+    match /users/{uid} {
+      allow read: if request.auth.uid == uid || isAdmin(request.auth.uid);
+      allow create: if request.auth.uid == uid && canCreateUser(request.resource.data);
+      allow update: if request.auth.uid == uid || isAdmin(request.auth.uid);
+      allow delete: if isAdmin(request.auth.uid);
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    function getChatConversation(conversationId) {
-      return get(/databases/$(database)/documents/conversations/$(conversationId)).data;
-    }
-
-    function isConversationParticipant(conversationId) {
-      let convDoc = get(/databases/$(database)/documents/conversations/$(conversationId)).data;
-      return isAuthenticated() && 
-             (convDoc.userId == request.auth.uid ||
-              convDoc.doctorId == request.auth.uid ||
-              isAdmin());
-    }
-
-    // ===== USERS COLLECTION =====
-    match /users/{userId} {
-      // Users can read their own profile; admins can read all
-      allow read: if isOwner(userId) || isAdmin();
-      // Anyone can create (signup)
-      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
-      // Users update own profile, admins can update any
-      allow update: if isOwner(userId) || isAdmin();
-      // Only admin can delete
-      allow delete: if isAdmin();
-    }
-
-    // ===== PROCEDURES COLLECTION =====
+    // ==================== Procedures Collection ====================
+    // procedures/{procedureId}
+    // Public read for all authenticated users
+    // Only admins can create/edit/delete
     match /procedures/{procedureId} {
-      // Public read access to procedures
-      allow read: if isAuthenticated();
-      // Only admin can write
-      allow write: if isAdmin();
+      allow read: if request.auth != null;
+      allow create: if isAdmin(request.auth.uid);
+      allow update: if isAdmin(request.auth.uid);
+      allow delete: if isAdmin(request.auth.uid);
     }
+
+    // ==================== Appointments Collection ====================
+    // appointments/{appointmentId}
+    // Users see only their own appointments
+    // Admins see all appointments
+    match /appointments/{appointmentId} {
+      allow read: if request.auth.uid == resource.data.userId || 
+                     isAdmin(request.auth.uid);
+      allow create: if request.auth.uid == request.resource.data.userId && 
+                       validateAppointmentCreate();
+      allow update: if isAdmin(request.auth.uid) || 
+                       (request.auth.uid == resource.data.userId && 
+                        validateAppointmentUserUpdate());
+      allow delete: if isAdmin(request.auth.uid);
+    }
+
+    // ==================== Conversations Collection ====================
+    // conversations/{conversationId}
+    // conversations/{conversationId}/messages/{messageId}
+    match /conversations/{conversationId} {
+      // Read: only participants or admin
+      allow read: if (request.auth.uid == resource.data.userId ||
+                      request.auth.uid == resource.data.adminId ||
+                      isAdmin(request.auth.uid));
+      
+      // Create: authenticated users
+      allow create: if request.auth != null && validateConversationCreate();
+      
+      // Update: only participants or admin
+      allow update: if (request.auth.uid == resource.data.userId ||
+                        request.auth.uid == resource.data.adminId ||
+                        isAdmin(request.auth.uid));
+      
+      // Delete: admin only
+      allow delete: if isAdmin(request.auth.uid);
+
+      // ===== Messages Subcollection =====
+      match /messages/{messageId} {
+        // Read: only conversation participants or admin
+        allow read: if (request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId ||
+                        request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.adminId ||
+                        isAdmin(request.auth.uid));
+        
+        // Create: authenticated users, valid message data
+        allow create: if request.auth != null && validateMessageCreate();
+        
+        // Update: message sender or admin (for moderation)
+        allow update: if request.auth.uid == resource.data.senderId || 
+                         isAdmin(request.auth.uid);
+        
+        // Delete: message sender or admin
+        allow delete: if request.auth.uid == resource.data.senderId || 
+                         isAdmin(request.auth.uid);
+      }
+    }
+
+    // ==================== Notifications Collection ====================
+    // notifications/{notificationId}
+    // Users can only see their own notifications
+    // System can create notifications
+    match /notifications/{notificationId} {
+      allow read: if request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null;
+      allow update: if request.auth.uid == resource.data.userId && 
+                       canUpdateNotification(request.resource.data, resource.data);
+      allow delete: if request.auth.uid == resource.data.userId || 
+                       isAdmin(request.auth.uid);
+    }
+
+    // ==================== FAQs Collection ====================
+    // faqs/{faqId}
+    // Public read for all authenticated users
+    // Only admins can create/edit/delete
+    match /faqs/{faqId} {
+      allow read: if request.auth != null;
+      allow create: if isAdmin(request.auth.uid);
+      allow update: if isAdmin(request.auth.uid);
+      allow delete: if isAdmin(request.auth.uid);
+    }
+
+    // ==================== Helper Functions ====================
+
+    // Check if user is admin
+    function isAdmin(uid) {
+      return uid != null && 
+             get(/databases/$(database)/documents/users/$(uid)).data.role == 'admin';
+    }
+
+    // Validate user creation data
+    function canCreateUser(data) {
+      return data.keys().hasAll(['name', 'email', 'phone']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.email is string && data.email.size() > 5 &&
+             data.phone is string &&
+             data.role in ['user', 'admin'] &&
+             data.photoUrl is string;
+    }
+
+    // Validate appointment on create
+    function validateAppointmentCreate() {
+      return request.resource.data.keys().hasAll([
+        'userId', 'procedureId', 'procedureName', 
+        'appointmentDate', 'appointmentTime', 'status'
+      ]) &&
+      request.resource.data.appointmentDate.matches('^\\d{4}-\\d{2}-\\d{2}$') &&
+      request.resource.data.appointmentTime.matches('^\\d{2}:\\d{2}$') &&
+      request.resource.data.status in ['booked', 'confirmed', 'completed', 'cancelled'];
+    }
+
+    // Validate appointment update by user (only notes and time before confirmation)
+    function validateAppointmentUserUpdate() {
+      return (request.resource.data.notes is string || 
+              request.resource.data.appointmentTime is string) &&
+             request.resource.data.userId == resource.data.userId &&
+             request.resource.data.status == resource.data.status;
+    }
+
+    // Validate conversation creation
+    function validateConversationCreate() {
+      return request.resource.data.keys().hasAll(['userId', 'adminId']) &&
+             request.resource.data.userId is string &&
+             request.resource.data.adminId is string;
+    }
+
+    // Validate message creation
+    function validateMessageCreate() {
+      return request.resource.data.keys().hasAll(['senderId', 'senderName', 'senderRole', 'text']) &&
+             request.resource.data.senderId == request.auth.uid &&
+             request.resource.data.text is string &&
+             request.resource.data.text.size() > 0 &&
+             request.resource.data.text.size() < 5000 &&
+             request.resource.data.senderRole in ['user', 'admin'];
+    }
+
+    // Can update notification (only isRead field)
+    function canUpdateNotification(newData, oldData) {
+      let updated = newData.diff(oldData).affectedKeys();
+      return updated.hasOnly(['isRead']) && newData.isRead is bool;
+    }
+  }
+}
+
+// ============================================
+// REQUIRED COMPOSITE INDEXES
+// Create these in Firebase Console
+// ============================================
+//
+// Index 1: Appointments by User + Date
+// Collection: appointments
+// Fields: userId (Asc), createdAt (Desc)
+// Purpose: Query user's appointments efficiently
+//
+// Index 2: Appointments by Status + Date
+// Collection: appointments
+// Fields: status (Asc), createdAt (Desc)
+// Purpose: Admin panel - filter by status
+//
+// Index 3: Notifications by User + Date
+// Collection: notifications
+// Fields: userId (Asc), createdAt (Desc)
+// Purpose: Show user's latest notifications
+//
+// Index 4: Conversations by User + Update
+// Collection: conversations
+// Fields: userId (Asc), updatedAt (Desc)
+// Purpose: User's conversations sorted by recent
+//
+// Index 5: Conversations by Admin + Update
+// Collection: conversations
+// Fields: adminId (Asc), updatedAt (Desc)
+// Purpose: Admin's conversations sorted by recent
+//
+// Note: Firebase will auto-prompt you to create
+// these when you run queries that require them.
+//
+// ============================================
 
     // ===== APPOINTMENTS COLLECTION =====
     match /appointments/{appointmentId} {

@@ -61,7 +61,7 @@ class ProcedureCard extends StatelessWidget {
                 children: [
                   // Title
                   Text(
-                    procedure.title,
+                    procedure.name,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

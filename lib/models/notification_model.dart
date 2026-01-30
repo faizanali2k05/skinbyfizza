@@ -5,10 +5,11 @@ class NotificationModel {
   final String userId;
   final String title;
   final String message;
-  final String type; // 'appointment'
-  final String? appointmentId;
-  final Timestamp createdAt;
-  bool isRead;
+  final String type;
+  final String appointmentId;
+  final String conversationId;
+  final bool isRead;
+  final DateTime? createdAt;
 
   NotificationModel({
     required this.id,
@@ -16,23 +17,11 @@ class NotificationModel {
     required this.title,
     required this.message,
     required this.type,
-    this.appointmentId,
-    required this.createdAt,
+    this.appointmentId = '',
+    this.conversationId = '',
     this.isRead = false,
+    this.createdAt,
   });
-
-  factory NotificationModel.fromMap(Map<String, dynamic> data, String documentId) {
-    return NotificationModel(
-      id: documentId,
-      userId: data['userId'] ?? '',
-      title: data['title'] ?? '',
-      message: data['message'] ?? '',
-      type: data['type'] ?? 'appointment',
-      appointmentId: data['appointmentId'],
-      createdAt: data['createdAt'] ?? Timestamp.now(),
-      isRead: data['isRead'] ?? false,
-    );
-  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -41,8 +30,27 @@ class NotificationModel {
       'message': message,
       'type': type,
       'appointmentId': appointmentId,
-      'createdAt': createdAt,
+      'conversationId': conversationId,
       'isRead': isRead,
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
+  }
+
+  factory NotificationModel.fromMap(Map<String, dynamic> data, String documentId) {
+    return NotificationModel(
+      id: documentId,
+      userId: data['userId'] ?? '',
+      title: data['title'] ?? '',
+      message: data['message'] ?? '',
+      type: data['type'] ?? 'appointment',
+      appointmentId: data['appointmentId'] ?? '',
+      conversationId: data['conversationId'] ?? '',
+      isRead: data['isRead'] ?? false,
+      createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,
+    );
+  }
+
+  factory NotificationModel.fromSnapshot(DocumentSnapshot snapshot) {
+    return NotificationModel.fromMap(snapshot.data() as Map<String, dynamic>, snapshot.id);
   }
 }

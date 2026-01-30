@@ -80,8 +80,9 @@ class FaqService {
     }
   }
 
-  /// Finds the best matching answer for the user's message.
-  /// Returns a default message if no match is found.
+  /// Finds the best matching answer for the user's message using keyword scoring.
+  /// Returns a default message if no good match is found.
+  /// Algorithm: Normalize input → tokenize → score each FAQ → return highest scoring match
   Future<String> getAnswer(String message) async {
     if (!_isLoaded) {
       await fetchFaqs();
@@ -91,27 +92,64 @@ class FaqService {
       return "I'm currently unable to access my knowledge base. Please try again later.";
     }
 
-    final lowerMsg = message.toLowerCase();
+    final normalizedMsg = message.toLowerCase().trim();
 
-    // specific check for greetings
-    if (['hi', 'hello', 'hey', 'greetings', 'salam'].any((w) => lowerMsg.contains(w))) {
-       return "Hello! I'm the SkinByFizza virtual assistant. How can I help you today?";
+    // Greeting detection
+    if (['hi', 'hello', 'hey', 'greetings', 'salam', 'assalam', 'wassalam']
+        .any((w) => normalizedMsg.contains(w))) {
+      return "Hello! I'm the SkinByFizza virtual assistant. How can I help you today?";
     }
 
-    // Keyword matching logic
-    // We look for the FAQ with the MOST matching keywords, or simply the first match.
-    // Let's try to find an FAQ where ANY of its keywords exist in the message.
-    
+    // Score all FAQs
+    var bestMatch = _findBestFAQMatch(normalizedMsg);
+    if (bestMatch != null) {
+      return bestMatch.answer;
+    }
+
+    // Default response if no match found
+    return "Sorry, I don't have information about that. Please contact us directly:\n📞 0300-1234567\n📞 021-35345678";
+  }
+
+  /// Internal method: Find best FAQ match using scoring algorithm
+  /// Scores based on: exact keyword match (3 pts), partial match (1 pt)
+  FaqModel? _findBestFAQMatch(String normalizedMessage) {
+    FaqModel? bestMatch;
+    int bestScore = 0;
+
     for (var faq in _cachedFaqs) {
-      // Check if any keyword matches
+      int score = 0;
+
+      // Score based on keywords
       for (var keyword in faq.keywords) {
-        if (lowerMsg.contains(keyword.toLowerCase())) {
-          return faq.answer;
+        final normalizedKeyword = keyword.toLowerCase();
+        
+        // Exact word match = 3 points
+        if (normalizedMessage.split(' ').contains(normalizedKeyword)) {
+          score += 3;
         }
+        // Substring match = 1 point (catches "appointment" in "book appointment")
+        else if (normalizedMessage.contains(normalizedKeyword)) {
+          score += 1;
+        }
+      }
+
+      // Also check question field if available
+      if (faq.question != null) {
+        final normalizedQuestion = faq.question!.toLowerCase();
+        // Questions are worth 2 points if matched
+        if (normalizedMessage.contains(normalizedQuestion)) {
+          score += 2;
+        }
+      }
+
+      // Update best match if this one is better
+      if (score > bestScore && score > 0) {
+        bestScore = score;
+        bestMatch = faq;
       }
     }
 
-    return "Sorry, I don't have this information right now. Please contact the clinic.";
+    return bestMatch;
   }
 
   /// Seeds the database with initial data if empty.

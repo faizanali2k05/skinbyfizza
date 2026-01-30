@@ -200,7 +200,7 @@ class _ProceduresListScreenState extends State<ProceduresListScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          procedure.category.toUpperCase(),
+                          'PROCEDURE',
                           style: const TextStyle(
                             color: AppColors.primary,
                             fontSize: 10,
@@ -213,7 +213,7 @@ class _ProceduresListScreenState extends State<ProceduresListScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      procedure.title,
+                      procedure.name,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

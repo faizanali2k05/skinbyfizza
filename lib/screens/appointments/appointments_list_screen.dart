@@ -37,8 +37,8 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _appointmentService.getUserAppointments(),
+      body: StreamBuilder<List<AppointmentModel>>(
+        stream: _appointmentService.getUserAppointmentsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -48,7 +48,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
               child: Text(
                 'No appointments found',
@@ -57,9 +57,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
             );
           }
 
-          final appointments = snapshot.data!.docs.map((doc) {
-            return AppointmentModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-          }).toList();
+          final appointments = snapshot.data ?? [];
 
           return RefreshIndicator(
             onRefresh: () async {},
@@ -125,7 +123,7 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                'Booked on: ${_formatDate(appointment.createdAt.toDate())}',
+                'Booked on: ${_formatDate(appointment.createdAt ?? DateTime.now())}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,

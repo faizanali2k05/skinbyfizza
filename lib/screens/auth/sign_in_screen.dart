@@ -46,7 +46,7 @@ class _SignInScreenState extends State<SignInScreen> {
       // Check role
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final role = await authService.getUserRole(user.uid);
+        final role = await authService.getCurrentUserRole();
         setState(() => _isLoading = false);
         
         if (mounted) {

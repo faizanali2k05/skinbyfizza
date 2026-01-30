@@ -51,13 +51,12 @@ class _AdminChatManagerScreenState extends State<AdminChatManagerScreen> {
                   .toList() ??
               [];
 
-          return StreamBuilder<QuerySnapshot>(
-            stream: _chatService.getDoctorConversations(adminId),
+          return StreamBuilder<List<ChatConversationModel>>(
+            stream: _chatService.getDoctorConversationsStream(adminId),
             builder: (context, convoSnapshot) {
               final conversations = {
-                for (var doc in convoSnapshot.data?.docs ?? [])
-                  doc['userId']: ChatConversationModel.fromMap(
-                      doc.data() as Map<String, dynamic>, doc.id)
+                for (var convo in convoSnapshot.data ?? [])
+                  convo.userId: convo
               };
 
               // Sort users: those with unread messages first, then those with recent messages, then alphabetically
@@ -73,14 +72,17 @@ class _AdminChatManagerScreenState extends State<AdminChatManagerScreen> {
                 }
 
                 if (convoA != null && convoB != null) {
-                  return convoB.updatedAt.compareTo(convoA.updatedAt);
+                  final timeA = convoA.updatedAt;
+                  final timeB = convoB.updatedAt;
+                  if (timeA != null && timeB != null) {
+                    return timeB.compareTo(timeA);
+                  }
                 }
 
                 if (convoA != null) return -1;
                 if (convoB != null) return 1;
 
-                return (a.displayName ?? a.email)
-                    .compareTo(b.displayName ?? b.email);
+                return a.name.compareTo(b.name);
               });
 
               return ListView.builder(
@@ -115,7 +117,7 @@ class _AdminChatManagerScreenState extends State<AdminChatManagerScreen> {
               backgroundColor: AppColors.primary.withOpacity(0.1),
               radius: 25,
               child: Text(
-                (user.displayName ?? user.email).substring(0, 1).toUpperCase(),
+                user.name.substring(0, 1).toUpperCase(),
                 style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
@@ -141,7 +143,7 @@ class _AdminChatManagerScreenState extends State<AdminChatManagerScreen> {
           ],
         ),
         title: Text(
-          user.displayName ?? user.email,
+          user.name,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         subtitle: Text(

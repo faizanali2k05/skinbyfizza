@@ -64,39 +64,39 @@ class NotificationService {
     print('Notification tapped: ${response.payload}');
   }
 
-  // Stream of notifications for current user
-  Stream<QuerySnapshot> getUserNotifications(String userId) {
+  // ==================== Real-time Notification Streams ======================
+
+  /// Get real-time stream of notifications for user (sorted by newest first)
+  Stream<List<NotificationModel>> getUserNotificationsStream(String userId) {
     return FirebaseFirestore.instance
         .collection('notifications')
         .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
-        .snapshots();
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => NotificationModel.fromSnapshot(doc))
+            .toList())
+        .handleError((error) {
+          print('Error fetching notifications stream: $error');
+          return <NotificationModel>[];
+        });
   }
 
-  // Mark notification as read
-  Future<void> markAsRead(String notificationId) async {
-    await FirebaseFirestore.instance
-        .collection('notifications')
-        .doc(notificationId)
-        .update({'isRead': true});
-  }
-
-  // Mark all notifications as read for user
-  Future<void> markAllAsRead(String userId) async {
-    final notifications = await FirebaseFirestore.instance
+  /// Get real-time stream of unread count for user (for badge display)
+  Stream<int> getUnreadCountStream(String userId) {
+    return FirebaseFirestore.instance
         .collection('notifications')
         .where('userId', isEqualTo: userId)
         .where('isRead', isEqualTo: false)
-        .get();
-
-    final batch = FirebaseFirestore.instance.batch();
-    for (var doc in notifications.docs) {
-      batch.update(doc.reference, {'isRead': true});
-    }
-    await batch.commit();
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length)
+        .handleError((error) {
+          print('Error fetching unread count stream: $error');
+          return 0;
+        });
   }
 
-  // Get unread count for user
+  /// Get unread count for user (single fetch)
   Future<int> getUnreadCount(String userId) async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -111,17 +111,83 @@ class NotificationService {
     }
   }
 
-  // Stream of unread count for user
-  Stream<int> getUnreadCountStream(String userId) {
+  /// Mark single notification as read
+  Future<String?> markAsRead(String notificationId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'isRead': true});
+      return null; // Success
+    } catch (e) {
+      return 'Error marking notification as read: $e';
+    }
+  }
+
+  /// Mark all notifications as read for user
+  Future<String?> markAllAsRead(String userId) async {
+    try {
+      final notifications = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      final batch = FirebaseFirestore.instance.batch();
+      for (var doc in notifications.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+      await batch.commit();
+      return null; // Success
+    } catch (e) {
+      return 'Error marking all notifications as read: $e';
+    }
+  }
+
+  /// Get QuerySnapshot stream (deprecated, use getUserNotificationsStream instead)
+  @Deprecated('Use getUserNotificationsStream for typed stream')
+  Stream<QuerySnapshot> getUserNotifications(String userId) {
     return FirebaseFirestore.instance
         .collection('notifications')
         .where('userId', isEqualTo: userId)
-        .where('isRead', isEqualTo: false)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.length);
+        .orderBy('createdAt', descending: true)
+        .snapshots();
   }
 
-  // Create and save notification to Firestore
+  /// Create and save notification to Firestore
+  /// Called by appointment and chat services to auto-create notifications
+  static Future<String?> createNotification({
+    required String userId,
+    required String title,
+    required String message,
+    required String type, // 'appointment', 'message', 'status_update'
+    String? appointmentId,
+    String? conversationId,
+  }) async {
+    try {
+      final notification = NotificationModel(
+        id: '',
+        userId: userId,
+        title: title,
+        message: message,
+        type: type,
+        appointmentId: appointmentId ?? '',
+        conversationId: conversationId ?? '',
+      );
+
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .add(notification.toMap());
+      
+      return null; // Success
+    } catch (e) {
+      print('Error creating Firestore notification: $e');
+      return 'Error creating notification: $e';
+    }
+  }
+
+  /// Deprecated: Use createNotification instead
+  @Deprecated('Use createNotification for typed creation')
   static Future<void> createFirestoreNotification({
     required String userId,
     required String title,

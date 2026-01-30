@@ -3,42 +3,50 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ChatConversationModel {
   final String id;
   final String userId;
-  final String doctorId;
+  final String adminId;
   final String lastMessage;
-  final Timestamp updatedAt;
-  final int unreadCount; // Unread for Admin
-  final int userUnreadCount; // Unread for User
+  final String lastSenderId;
+  final int unreadCount;
+  final DateTime? updatedAt;
+  final DateTime? createdAt;
 
   ChatConversationModel({
     required this.id,
     required this.userId,
-    required this.doctorId,
-    required this.lastMessage,
-    required this.updatedAt,
+    required this.adminId,
+    this.lastMessage = '',
+    this.lastSenderId = '',
     this.unreadCount = 0,
-    this.userUnreadCount = 0,
+    this.updatedAt,
+    this.createdAt,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'adminId': adminId,
+      'lastMessage': lastMessage,
+      'lastSenderId': lastSenderId,
+      'unreadCount': unreadCount,
+      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+    };
+  }
 
   factory ChatConversationModel.fromMap(Map<String, dynamic> data, String documentId) {
     return ChatConversationModel(
       id: documentId,
       userId: data['userId'] ?? '',
-      doctorId: data['doctorId'] ?? '',
+      adminId: data['adminId'] ?? '',
       lastMessage: data['lastMessage'] ?? '',
-      updatedAt: data['updatedAt'] ?? Timestamp.now(),
+      lastSenderId: data['lastSenderId'] ?? '',
       unreadCount: data['unreadCount'] ?? 0,
-      userUnreadCount: data['userUnreadCount'] ?? 0,
+      updatedAt: data['updatedAt'] != null ? (data['updatedAt'] as Timestamp).toDate() : null,
+      createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'userId': userId,
-      'doctorId': doctorId,
-      'lastMessage': lastMessage,
-      'updatedAt': updatedAt,
-      'unreadCount': unreadCount,
-      'userUnreadCount': userUnreadCount,
-    };
+  factory ChatConversationModel.fromSnapshot(DocumentSnapshot snapshot) {
+    return ChatConversationModel.fromMap(snapshot.data() as Map<String, dynamic>, snapshot.id);
   }
 }

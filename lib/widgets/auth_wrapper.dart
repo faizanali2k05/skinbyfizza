@@ -30,7 +30,7 @@ class AuthWrapper extends StatelessWidget {
           
           // Fetch Role
           return FutureBuilder<String>(
-            future: authService.getUserRole(user.uid),
+            future: authService.getCurrentUserRole(),
             builder: (context, roleSnapshot) {
               if (roleSnapshot.connectionState == ConnectionState.waiting) {
                  return const Scaffold(

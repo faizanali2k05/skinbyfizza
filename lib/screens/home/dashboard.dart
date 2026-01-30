@@ -227,14 +227,13 @@ class _DashboardState extends State<Dashboard> {
 
   Widget _buildDynamicHeader() {
     if (currentUser == null) return const SizedBox();
-
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).snapshots(),
       builder: (context, snapshot) {
         String displayName = "User";
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>;
-          displayName = data['displayName'] ?? currentUser!.displayName ?? "User";
+          displayName = data['displayName'] ?? data['name'] ?? "User";
         }
 
         return Row(
@@ -621,7 +620,7 @@ class _DashboardState extends State<Dashboard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    procedure.category.toUpperCase(),
+                    'PROCEDURE',
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 10,
@@ -630,7 +629,7 @@ class _DashboardState extends State<Dashboard> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    procedure.title,
+                    procedure.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

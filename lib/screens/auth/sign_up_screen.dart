@@ -58,11 +58,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
           final newUser = UserModel(
             uid: credential.user!.uid,
             email: _emailController.text.trim(),
+            name: _nameController.text.trim(),
             displayName: _nameController.text.trim(),
-            role: 'client', // Default role
+            phone: _phoneController.text.trim(),
             phoneNumber: _phoneController.text.trim(),
-            password: _passwordController.text.trim(), // Storing as requested
-            status: 'Active',
+            role: 'user', // Default role
+            status: 'active',
             createdAt: DateTime.now(),
           );
 

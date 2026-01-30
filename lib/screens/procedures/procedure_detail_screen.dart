@@ -54,7 +54,7 @@ class ProcedureDetailScreen extends StatelessWidget {
                 children: [
                   // Title
                   Text(
-                    procedure.title,
+                    procedure.name,
                     style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -71,7 +71,7 @@ class ProcedureDetailScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      procedure.category,
+                      'Beauty Procedure',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,

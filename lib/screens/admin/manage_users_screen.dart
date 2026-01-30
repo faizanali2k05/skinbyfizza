@@ -32,7 +32,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         email: email,
         password: password,
       );
-
       // 3. Create User Document in Firestore
       // Note: We use the UID from the newly created auth user
       final uid = userCredential.user!.uid;
@@ -40,11 +39,13 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       final newUser = UserModel(
         uid: uid,
         email: email,
+        name: name,
         displayName: name,
-        role: 'client',
+        phone: phone,
         phoneNumber: phone,
+        role: 'user',
         createdAt: DateTime.now(),
-        status: 'Active',
+        status: 'active',
       );
       
       await _usersRef.doc(uid).set(newUser.toMap());

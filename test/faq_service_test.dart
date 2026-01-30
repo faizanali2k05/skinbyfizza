@@ -5,8 +5,8 @@ import 'package:skinbyfizza/models/faq_model.dart';
 void main() {
   group('FaqService (local matching)', () {
     final faqs = [
-      FaqModel(id: '1', keywords: ['time', 'timing'], answer: 'Open 9-5'),
-      FaqModel(id: '2', keywords: ['location', 'address'], answer: 'At 12-C, Lane 4'),
+      FaqModel(id: '1', question: 'When are you open?', keywords: ['time', 'timing'], answer: 'Open 9-5'),
+      FaqModel(id: '2', question: 'Where is your location?', keywords: ['location', 'address'], answer: 'At 12-C, Lane 4'),
     ];
 
     test('returns greeting for hello', () async {

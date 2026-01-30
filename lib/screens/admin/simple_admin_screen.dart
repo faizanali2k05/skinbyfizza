@@ -128,8 +128,8 @@ class _SimpleAdminScreenState extends State<SimpleAdminScreen> {
                               color: option['color'],
                             ),
                             if (option['title'] == 'Chats')
-                              StreamBuilder<int>(
-                                stream: _chatService.getTotalUnreadCountStream(),
+                              FutureBuilder<int>(
+                                future: _chatService.getTotalUnreadCountStream(FirebaseAuth.instance.currentUser?.uid ?? ''),
                                 builder: (context, snapshot) {
                                   final totalUnread = snapshot.data ?? 0;
                                   if (totalUnread <= 0) return const SizedBox.shrink();

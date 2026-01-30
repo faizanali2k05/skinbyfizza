@@ -113,7 +113,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                   ),
                   trailing: Text(
-                    _formatDate(notification.createdAt.toDate()),
+                    _formatDate(notification.createdAt ?? DateTime.now()),
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,

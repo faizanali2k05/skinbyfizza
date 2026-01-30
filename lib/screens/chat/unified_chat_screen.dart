@@ -31,6 +31,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
   String? _conversationId;
   bool _isLoading = true;
   String _currentUserId = '';
+  String _currentUserName = 'User'; // Current user's name for messages
   String _otherUserId = ''; // The other person in the conversation
   bool _isAdmin = false;
 
@@ -89,7 +90,9 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         
         // Mark messages as read
         print('UnifiedChatScreen: Marking messages as read');
-        await _chatService.markMessagesAsRead(conversationId, _isAdmin);
+        if (conversationId != null) {
+          await _chatService.markMessagesAsRead(conversationId);
+        }
         
         // Scroll to bottom after a delay
         Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
@@ -117,7 +120,8 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         conversationId: _conversationId!,
         text: text,
         senderId: _currentUserId,
-        receiverId: _otherUserId,
+        senderName: _currentUserName,
+        senderRole: _isAdmin ? 'admin' : 'user',
       );
       
       // Auto-scroll to new message
@@ -182,8 +186,8 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         children: [
           // Messages List
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _chatService.getMessages(_conversationId!),
+            child: StreamBuilder<List<ChatMessageModel>>(
+              stream: _chatService.getMessagesStream(_conversationId!),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   print('UnifiedChatScreen Error: ${snapshot.error}');
@@ -220,8 +224,8 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                   return const Center(child: Text('No messages yet'));
                 }
 
-                final docs = snapshot.data!.docs;
-                if (docs.isEmpty) {
+                final messages = snapshot.data ?? [];
+                if (messages.isEmpty) {
                   return Center(
                     child: Text(
                       _isAdmin 
@@ -243,13 +247,9 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                   controller: _scrollController,
                   reverse: false,
                   padding: const EdgeInsets.all(16),
-                  itemCount: docs.length,
+                  itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final data = docs[docs.length - 1 - index].data() as Map<String, dynamic>;
-                    final message = ChatMessageModel.fromMap(
-                      data,
-                      docs[docs.length - 1 - index].id,
-                    );
+                    final message = messages[messages.length - 1 - index];
                     final isMe = message.senderId == _currentUserId;
                     return _buildMessageBubble(message.text, isMe);
                   },

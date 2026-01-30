@@ -205,12 +205,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                              }
                           }
 
-                          // SYNC WITH CHAT
-                          await ChatService().updateConversationUserProfile(
-                            userId, 
-                            _nameController.text.trim(), 
-                            _emailController.text.trim()
-                          );
+                          // Note: Chat profile sync would require conversation IDs which we don't have access to here
+                          // This is handled automatically when messages are sent
                           
                           if (mounted) {
                              ScaffoldMessenger.of(context).showSnackBar(

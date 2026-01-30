@@ -59,7 +59,7 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
         
         // Mark messages as read when opening the chat
         print('AdminChatScreen: Marking messages as read');
-        await _chatService.markMessagesAsRead(conversationId, true);
+        await _chatService.markMessagesAsRead(conversationId);
         
         // Auto-scroll after a small delay
         Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
@@ -101,7 +101,8 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
         conversationId: _conversationId!,
         text: text,
         senderId: currentUser.uid,
-        receiverId: _targetUserId,
+        senderName: currentUser.displayName ?? 'Admin',
+        senderRole: 'admin',
       );
     } catch (e) {
       print('Error sending message: $e');
@@ -130,8 +131,8 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _chatService.getMessages(_conversationId!),
+            child: StreamBuilder<List<ChatMessageModel>>(
+              stream: _chatService.getMessagesStream(_conversationId!),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   print('AdminChatScreen stream error: ${snapshot.error}');
@@ -168,8 +169,8 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
                   return const Center(child: Text('No messages yet'));
                 }
 
-                final docs = snapshot.data!.docs;
-                if (docs.isEmpty) {
+                final messages = snapshot.data ?? [];
+                if (messages.isEmpty) {
                   return const Center(
                     child: Text(
                       'Start a conversation with the user',
@@ -189,10 +190,9 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
                   controller: _scrollController,
                   reverse: false, // Don't reverse - show messages chronologically
                   padding: const EdgeInsets.all(16),
-                  itemCount: docs.length,
+                  itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final data = docs[docs.length - 1 - index].data() as Map<String, dynamic>;
-                    final message = ChatMessageModel.fromMap(data, docs[docs.length - 1 - index].id);
+                    final message = messages[messages.length - 1 - index];
                     final isMe = message.senderId == _auth.currentUser?.uid;
                     return _buildMessageBubble(message.text, isMe);
                   },
