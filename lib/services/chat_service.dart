@@ -386,7 +386,7 @@ class ChatService {
   }
 
   /// Get total unread count for user across all conversations
-  Future<int> getTotalUnreadCountStream(String userId) async {
+  Future<int> getTotalUnreadCount(String userId) async {
     try {
       final conversations = await _firestore
           .collection('conversations')
@@ -434,6 +434,18 @@ class ChatService {
           .update({'lastSenderId': userName});
     } catch (e) {
       debugPrint('Update conversation user profile error: $e');
+    }
+  }
+
+  /// Force refresh conversation by updating timestamp
+  Future<void> forceRefreshConversation(String conversationId) async {
+    try {
+      await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .update({'updatedAt': FieldValue.serverTimestamp()});
+    } catch (e) {
+      debugPrint('Force refresh conversation error: $e');
     }
   }
 }

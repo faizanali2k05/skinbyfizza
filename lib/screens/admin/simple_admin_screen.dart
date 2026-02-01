@@ -19,6 +19,7 @@ class SimpleAdminScreen extends StatefulWidget {
 
 class _SimpleAdminScreenState extends State<SimpleAdminScreen> {
   final ChatService _chatService = ChatService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final List<Map<String, dynamic>> _adminOptions = [
     {
       'title': 'Chats',
@@ -129,7 +130,7 @@ class _SimpleAdminScreenState extends State<SimpleAdminScreen> {
                             ),
                             if (option['title'] == 'Chats')
                               FutureBuilder<int>(
-                                future: _chatService.getTotalUnreadCountStream(FirebaseAuth.instance.currentUser?.uid ?? ''),
+                                future: _chatService.getTotalUnreadCount(_auth.currentUser?.uid ?? ''),
                                 builder: (context, snapshot) {
                                   final totalUnread = snapshot.data ?? 0;
                                   if (totalUnread <= 0) return const SizedBox.shrink();

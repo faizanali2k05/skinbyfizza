@@ -16,15 +16,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
-  // Original screens structure: Home, Procedures, Shop (external), Chat, Profile
-  final List<Widget> _screens = [
-    const Dashboard(),
-    const ProceduresListScreen(),
-    const UnifiedChatScreen(),
-    const ProfileScreen(),
-  ];
+  int _navIndex = 0; // Index for BottomNavigationBar (0-4)
 
   Future<void> _launchShopUrl() async {
     final Uri url = Uri.parse('https://5kassi.com/skinbyfizza/shop/');
@@ -34,34 +26,36 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onTabTapped(int index) {
-    if (index == 2) { // Shop tab is external link
+    if (index == 2) { // Shop link
       _launchShopUrl();
+      // Do not update state/index for external link
     } else {
-      // Adjust index to account for the external shop tab not having a screen
-      int adjustedIndex = index;
-      if (index > 2) {
-        adjustedIndex = index - 1; // Skip the external shop tab in our screens list
-      }
-      
       setState(() {
-        _currentIndex = adjustedIndex;
+        _navIndex = index;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Map nav index to screen widget
     Widget currentScreen;
-    if (_currentIndex == 0) {
-      currentScreen = _screens[0];
-    } else if (_currentIndex == 1) {
-      currentScreen = _screens[1];
-    } else if (_currentIndex == 2) {
-      currentScreen = _screens[2]; // AI Chat screen
-    } else if (_currentIndex == 3) {
-      currentScreen = _screens[3]; // Profile screen
-    } else {
-      currentScreen = _screens[0];
+    switch (_navIndex) {
+      case 0:
+        currentScreen = const Dashboard();
+        break;
+      case 1:
+        currentScreen = const ProceduresListScreen();
+        break;
+      // case 2 is Shop (external), no screen needed
+      case 3:
+        currentScreen = const UnifiedChatScreen();
+        break;
+      case 4:
+        currentScreen = const ProfileScreen();
+        break;
+      default:
+        currentScreen = const Dashboard();
     }
 
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -75,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, snapshot) {
           final unreadCount = snapshot.data ?? 0;
           return BottomNavBar(
-            currentIndex: _currentIndex,
+            currentIndex: _navIndex,
             onTap: _onTabTapped,
             unreadCount: unreadCount,
             isAdmin: false, // User mode

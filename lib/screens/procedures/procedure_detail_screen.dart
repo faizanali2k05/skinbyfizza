@@ -5,6 +5,7 @@ import '../../constants/styles.dart';
 import '../../routes/app_routes.dart';
 import '../appointments/book_appointment_screen.dart';
 import '../chat/unified_chat_screen.dart';
+import '../../constants/currency.dart';
 
 class ProcedureDetailScreen extends StatelessWidget {
   final ProcedureModel procedure;
@@ -110,7 +111,7 @@ class ProcedureDetailScreen extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Rs ${procedure.price.toStringAsFixed(0)}',
+                          CurrencyConstants.formatCurrency(procedure.price, currencyCode: 'AED'),
                           style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,

@@ -21,15 +21,37 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // ==================== Helper Functions ====================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Check if user is conversation participant
+    function isConversationParticipant(conversationId) {
+      let conversation = get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+      return isAuthenticated() && 
+             (request.auth.uid == conversation.userId ||
+              request.auth.uid == conversation.adminId ||
+              isAdmin());
+    }
 
     // ==================== Users Collection ====================
     // users/{uid}
     // Each user has a document with their profile
     match /users/{uid} {
-      allow read: if request.auth.uid == uid || isAdmin(request.auth.uid);
+      allow read: if request.auth.uid == uid || isAdmin();
       allow create: if request.auth.uid == uid && canCreateUser(request.resource.data);
-      allow update: if request.auth.uid == uid || isAdmin(request.auth.uid);
-      allow delete: if isAdmin(request.auth.uid);
+      allow update: if request.auth.uid == uid || isAdmin();
+      allow delete: if isAdmin();
     }
 
     // ==================== Procedures Collection ====================
@@ -37,10 +59,10 @@ service cloud.firestore {
     // Public read for all authenticated users
     // Only admins can create/edit/delete
     match /procedures/{procedureId} {
-      allow read: if request.auth != null;
-      allow create: if isAdmin(request.auth.uid);
-      allow update: if isAdmin(request.auth.uid);
-      allow delete: if isAdmin(request.auth.uid);
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // ==================== Appointments Collection ====================
@@ -49,13 +71,13 @@ service cloud.firestore {
     // Admins see all appointments
     match /appointments/{appointmentId} {
       allow read: if request.auth.uid == resource.data.userId || 
-                     isAdmin(request.auth.uid);
+                     isAdmin();
       allow create: if request.auth.uid == request.resource.data.userId && 
                        validateAppointmentCreate();
-      allow update: if isAdmin(request.auth.uid) || 
+      allow update: if isAdmin() || 
                        (request.auth.uid == resource.data.userId && 
                         validateAppointmentUserUpdate());
-      allow delete: if isAdmin(request.auth.uid);
+      allow delete: if isAdmin();
     }
 
     // ==================== Conversations Collection ====================
@@ -63,38 +85,32 @@ service cloud.firestore {
     // conversations/{conversationId}/messages/{messageId}
     match /conversations/{conversationId} {
       // Read: only participants or admin
-      allow read: if (request.auth.uid == resource.data.userId ||
-                      request.auth.uid == resource.data.adminId ||
-                      isAdmin(request.auth.uid));
+      allow read: if isConversationParticipant(conversationId);
       
       // Create: authenticated users
-      allow create: if request.auth != null && validateConversationCreate();
+      allow create: if isAuthenticated() && validateConversationCreate();
       
       // Update: only participants or admin
-      allow update: if (request.auth.uid == resource.data.userId ||
-                        request.auth.uid == resource.data.adminId ||
-                        isAdmin(request.auth.uid));
+      allow update: if isConversationParticipant(conversationId);
       
       // Delete: admin only
-      allow delete: if isAdmin(request.auth.uid);
+      allow delete: if isAdmin();
 
       // ===== Messages Subcollection =====
       match /messages/{messageId} {
         // Read: only conversation participants or admin
-        allow read: if (request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId ||
-                        request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.adminId ||
-                        isAdmin(request.auth.uid));
+        allow read: if isConversationParticipant(conversationId);
         
         // Create: authenticated users, valid message data
-        allow create: if request.auth != null && validateMessageCreate();
+        allow create: if isAuthenticated() && validateMessageCreate();
         
         // Update: message sender or admin (for moderation)
         allow update: if request.auth.uid == resource.data.senderId || 
-                         isAdmin(request.auth.uid);
+                         isAdmin();
         
         // Delete: message sender or admin
         allow delete: if request.auth.uid == resource.data.senderId || 
-                         isAdmin(request.auth.uid);
+                         isAdmin();
       }
     }
 
@@ -104,11 +120,12 @@ service cloud.firestore {
     // System can create notifications
     match /notifications/{notificationId} {
       allow read: if request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null;
+      allow create: if isAuthenticated() && 
+                       (request.resource.data.userId == request.auth.uid || isAdmin());
       allow update: if request.auth.uid == resource.data.userId && 
                        canUpdateNotification(request.resource.data, resource.data);
       allow delete: if request.auth.uid == resource.data.userId || 
-                       isAdmin(request.auth.uid);
+                       isAdmin();
     }
 
     // ==================== FAQs Collection ====================
@@ -116,19 +133,37 @@ service cloud.firestore {
     // Public read for all authenticated users
     // Only admins can create/edit/delete
     match /faqs/{faqId} {
-      allow read: if request.auth != null;
-      allow create: if isAdmin(request.auth.uid);
-      allow update: if isAdmin(request.auth.uid);
-      allow delete: if isAdmin(request.auth.uid);
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
-    // ==================== Helper Functions ====================
-
-    // Check if user is admin
-    function isAdmin(uid) {
-      return uid != null && 
-             get(/databases/$(database)/documents/users/$(uid)).data.role == 'admin';
+    // ==================== AI Chat Messages Collection ====================
+    // ai_chat_messages/{msgId}
+    // Users see their own messages
+    match /ai_chat_messages/{msgId} {
+      allow read: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+                       (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
     }
+
+    // ==================== Content Collection ====================
+    // content/{contentId}
+    // Used for static content like about_us
+    // Only admins can create/edit content documents
+    match /content/{contentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ==================== Validation Functions ====================
 
     // Validate user creation data
     function canCreateUser(data) {
@@ -218,81 +253,3 @@ service cloud.firestore {
 // these when you run queries that require them.
 //
 // ============================================
-
-    // ===== APPOINTMENTS COLLECTION =====
-    match /appointments/{appointmentId} {
-      // Users see their own appointments; admin sees all
-      allow read: if isAuthenticated() && 
-                     (resource.data.userId == request.auth.uid || isAdmin());
-      // Users can create their own appointments
-      allow create: if isAuthenticated() && 
-                       request.resource.data.userId == request.auth.uid;
-      // Users can update their own; admin can update any
-      allow update: if isAuthenticated() && 
-                       (resource.data.userId == request.auth.uid || isAdmin());
-      // Admin only delete
-      allow delete: if isAdmin();
-    }
-
-    // ===== NOTIFICATIONS COLLECTION =====
-    match /notifications/{notificationId} {
-      // Users see their own notifications
-      allow read: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
-      // Can create if for current user or admin
-      allow create: if isAuthenticated() && 
-                       (request.resource.data.userId == request.auth.uid || isAdmin());
-      // Users can update own (mark read); admin can update any
-      allow update: if isAuthenticated() && 
-                       (resource.data.userId == request.auth.uid || isAdmin());
-      // Admin only delete
-      allow delete: if isAdmin();
-    }
-
-    // ===== FAQS COLLECTION =====
-    match /faqs/{faqId} {
-      // All authenticated users can read FAQs
-      allow read: if isAuthenticated();
-      // Only admin can write
-      allow write: if isAdmin();
-    }
-
-    // ===== AI CHAT MESSAGES COLLECTION =====
-    match /ai_chat_messages/{msgId} {
-      // Users see their own messages
-      allow read: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
-      // Users can send messages
-      allow create: if isAuthenticated() && 
-                       request.resource.data.userId == request.auth.uid;
-      // Users can update own; admin can manage
-      allow update: if isAuthenticated() && 
-                       (resource.data.userId == request.auth.uid || isAdmin());
-      // Admin only delete
-      allow delete: if isAdmin();
-    }
-
-    // ===== CONVERSATIONS COLLECTION =====
-    match /conversations/{conversationId} {
-      // Participants (user or doctor/admin) can read conversation
-      allow read: if isConversationParticipant(conversationId);
-      // Authenticated users can create
-      allow create: if isAuthenticated();
-      // Participants or admin can update
-      allow update: if isConversationParticipant(conversationId);
-      // Admin only delete
-      allow delete: if isAdmin();
-      
-      // Messages subcollection
-      match /messages/{messageId} {
-        // Participants can read/write messages
-        allow read: if isConversationParticipant(conversationId);
-        allow create: if isAuthenticated() && 
-                         (request.resource.data.senderId == request.auth.uid);
-        allow update: if isAuthenticated() && 
-                         (resource.data.senderId == request.auth.uid || isAdmin());
-        allow delete: if isAdmin();
-      }
-    }
-  }
-}

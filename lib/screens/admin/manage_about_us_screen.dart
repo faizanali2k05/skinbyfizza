@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/colors.dart';
 import '../../constants/styles.dart';
+import '../../services/auth_service.dart';
 
 class ManageAboutUsScreen extends StatefulWidget {
   const ManageAboutUsScreen({super.key});
@@ -17,15 +19,30 @@ class _ManageAboutUsScreenState extends State<ManageAboutUsScreen> {
   final TextEditingController _instagramController = TextEditingController();
   final TextEditingController _facebookController = TextEditingController();
   bool _isLoading = true;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _checkAdminAndFetchData();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _checkAdminAndFetchData() async {
     try {
+      // Check if user is admin first
+      final auth = AuthService();
+      _isAdmin = await auth.isCurrentUserAdmin();
+      
+      if (!_isAdmin) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Access denied. Admin privileges required.")),
+          );
+          Navigator.pop(context); // Go back if not admin
+        }
+        return;
+      }
+
       final doc = await FirebaseFirestore.instance.collection('content').doc('about_us').get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
@@ -41,13 +58,26 @@ class _ManageAboutUsScreenState extends State<ManageAboutUsScreen> {
         _phoneController.text = "+92 300 1234567";
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error loading data: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error loading data: $e")));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _saveData() async {
+    if (!_isAdmin) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Access denied. Admin privileges required.")),
+        );
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       await FirebaseFirestore.instance.collection('content').doc('about_us').set({
@@ -71,6 +101,39 @@ class _ManageAboutUsScreenState extends State<ManageAboutUsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isAdmin && !_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text("Manage About Us"),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.block, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                "Access Denied",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "Admin privileges required to access this page.",
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(

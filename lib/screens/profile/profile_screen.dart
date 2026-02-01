@@ -64,9 +64,9 @@ class ProfileScreen extends StatelessWidget {
                     }
 
                     final data = snapshot.data!.data() as Map<String, dynamic>;
-                    final displayName = data['displayName'] ?? "User";
+                    final displayName = data['displayName'] ?? data['name'] ?? "User";
                     final email = data['email'] ?? "";
-                    final phone = data['phoneNumber'] ?? "";
+                    final phone = data['phone'] ?? data['phoneNumber'] ?? "";
 
                     return Column(
                       children: [

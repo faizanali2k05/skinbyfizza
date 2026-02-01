@@ -52,7 +52,11 @@ class _ManageAppointmentsScreenState extends State<ManageAppointmentsScreen> {
           final appointments = snapshot.data ?? [];
 
           return RefreshIndicator(
-            onRefresh: () async {},
+            onRefresh: () async {
+              // The StreamBuilder handles real-time updates automatically
+              // This refresh indicator is just for visual feedback
+              return Future<void>.delayed(const Duration(milliseconds: 500));
+            },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: appointments.length,

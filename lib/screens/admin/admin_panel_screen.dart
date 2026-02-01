@@ -6,6 +6,7 @@ import '../../screens/admin/manage_appointments_screen.dart';
 import '../../screens/admin/admin_chat_manager_screen.dart';
 import '../../screens/admin/manage_about_us_screen.dart';
 import '../../constants/colors.dart';
+import '../../utils/sync_utils.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});

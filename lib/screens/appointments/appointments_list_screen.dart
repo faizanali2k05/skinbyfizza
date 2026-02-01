@@ -57,10 +57,96 @@ class _AppointmentsListScreenState extends State<AppointmentsListScreen> {
             );
           }
 
-          final appointments = snapshot.data ?? [];
+          // Filter to show only upcoming appointments (booked/confirmed and in the future)
+          final allAppointments = snapshot.data ?? [];
+          final upcomingAppointments = allAppointments.where((appointment) {
+            DateTime appointmentDateTime = DateTime.now();
+            try {
+              final dateParts = appointment.appointmentDate.split('-');
+              final timeParts = appointment.appointmentTime.split(':');
+              if (dateParts.length == 3 && timeParts.length >= 2) {
+                final year = int.parse(dateParts[0]);
+                final month = int.parse(dateParts[1]);
+                final day = int.parse(dateParts[2]);
+                final hour = int.parse(timeParts[0]);
+                final minute = int.parse(timeParts[1]);
+                appointmentDateTime = DateTime(year, month, day, hour, minute);
+              }
+            } catch (e) {
+              print('Error parsing appointment date: $e');
+            }
+            
+            // Return appointments that are booked/confirmed and in the future
+            return (appointment.status == 'booked' || appointment.status == 'confirmed') &&
+                   appointmentDateTime.isAfter(DateTime.now());
+          }).toList();
+
+          // Sort upcoming appointments by date/time (earliest first)
+          upcomingAppointments.sort((a, b) {
+            DateTime dateTimeA = DateTime.now();
+            DateTime dateTimeB = DateTime.now();
+            
+            try {
+              final datePartsA = a.appointmentDate.split('-');
+              final timePartsA = a.appointmentTime.split(':');
+              if (datePartsA.length == 3 && timePartsA.length >= 2) {
+                final yearA = int.parse(datePartsA[0]);
+                final monthA = int.parse(datePartsA[1]);
+                final dayA = int.parse(datePartsA[2]);
+                final hourA = int.parse(timePartsA[0]);
+                final minuteA = int.parse(timePartsA[1]);
+                dateTimeA = DateTime(yearA, monthA, dayA, hourA, minuteA);
+              }
+              
+              final datePartsB = b.appointmentDate.split('-');
+              final timePartsB = b.appointmentTime.split(':');
+              if (datePartsB.length == 3 && timePartsB.length >= 2) {
+                final yearB = int.parse(datePartsB[0]);
+                final monthB = int.parse(datePartsB[1]);
+                final dayB = int.parse(datePartsB[2]);
+                final hourB = int.parse(timePartsB[0]);
+                final minuteB = int.parse(timePartsB[1]);
+                dateTimeB = DateTime(yearB, monthB, dayB, hourB, minuteB);
+              }
+            } catch (e) {
+              print('Error parsing appointment date for sorting: $e');
+            }
+            
+            return dateTimeA.compareTo(dateTimeB);
+          });
+
+          // Combine upcoming appointments first, then past appointments
+          final appointments = [
+            ...upcomingAppointments,
+            ...allAppointments.where((appointment) {
+              DateTime appointmentDateTime = DateTime.now();
+              try {
+                final dateParts = appointment.appointmentDate.split('-');
+                final timeParts = appointment.appointmentTime.split(':');
+                if (dateParts.length == 3 && timeParts.length >= 2) {
+                  final year = int.parse(dateParts[0]);
+                  final month = int.parse(dateParts[1]);
+                  final day = int.parse(dateParts[2]);
+                  final hour = int.parse(timeParts[0]);
+                  final minute = int.parse(timeParts[1]);
+                  appointmentDateTime = DateTime(year, month, day, hour, minute);
+                }
+              } catch (e) {
+                print('Error parsing appointment date: $e');
+              }
+              
+              // Past appointments or canceled/completed
+              return (appointment.status != 'booked' && appointment.status != 'confirmed') ||
+                     appointmentDateTime.isBefore(DateTime.now());
+            }).toList()
+          ];
 
           return RefreshIndicator(
-            onRefresh: () async {},
+            onRefresh: () async {
+              // The StreamBuilder handles real-time updates automatically
+              // This refresh indicator is just for visual feedback
+              return Future<void>.delayed(const Duration(milliseconds: 500));
+            },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: appointments.length,

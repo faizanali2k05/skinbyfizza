@@ -46,8 +46,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _notificationService.getUserNotifications(userId),
+      body: StreamBuilder<List<NotificationModel>>(
+        stream: _notificationService.getUserNotificationsStream(userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -57,7 +57,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          final notifications = snapshot.data ?? [];
+
+          if (notifications.isEmpty) {
             return const Center(
               child: Text(
                 'No notifications yet',
@@ -66,9 +68,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             );
           }
 
-          final notifications = snapshot.data!.docs.map((doc) {
-            return NotificationModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-          }).toList();
+          // Client-side sort to fix missing index error
+          notifications.sort((a, b) {
+            final aTime = a.createdAt ?? DateTime(0);
+            final bTime = b.createdAt ?? DateTime(0);
+            return bTime.compareTo(aTime); // Descending
+          });
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),

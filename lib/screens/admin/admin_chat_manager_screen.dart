@@ -33,45 +33,63 @@ class _AdminChatManagerScreenState extends State<AdminChatManagerScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('users').snapshots(),
-        builder: (context, userSnapshot) {
-          if (userSnapshot.connectionState == ConnectionState.waiting) {
+      body: StreamBuilder<List<ChatConversationModel>>(
+        stream: _chatService.getAdminConversationsStream(adminId),
+        builder: (context, convoSnapshot) {
+          if (convoSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (userSnapshot.hasError) {
-            return Center(child: Text('Error: ${userSnapshot.error}'));
+          if (convoSnapshot.hasError) {
+            return Center(child: Text('Error: ${convoSnapshot.error}'));
           }
 
-          final users = userSnapshot.data?.docs
-                  .map((doc) => UserModel.fromMap(
-                      doc.data() as Map<String, dynamic>, doc.id))
-                  .where((user) => user.uid != adminId) // Don't show admin themselves
-                  .toList() ??
-              [];
+          final conversations = {
+            for (var convo in convoSnapshot.data ?? [])
+              convo.userId: convo
+          };
 
-          return StreamBuilder<List<ChatConversationModel>>(
-            stream: _chatService.getDoctorConversationsStream(adminId),
-            builder: (context, convoSnapshot) {
-              final conversations = {
-                for (var convo in convoSnapshot.data ?? [])
-                  convo.userId: convo
-              };
+          return StreamBuilder<QuerySnapshot>(
+            stream: _firestore.collection('users').snapshots(),
+            builder: (context, userSnapshot) {
+              if (userSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-              // Sort users: those with unread messages first, then those with recent messages, then alphabetically
+              if (userSnapshot.hasError) {
+                return Center(child: Text('Error: ${userSnapshot.error}'));
+              }
+
+              final users = userSnapshot.data?.docs
+                      .map((doc) => UserModel.fromMap(
+                          doc.data() as Map<String, dynamic>, doc.id))
+                      .where((user) => user.uid != adminId) // Don't show admin themselves
+                      .toList() ??
+                  [];
+
+              // Sort users: those with active conversations first, then by unread messages, then alphabetically
               users.sort((a, b) {
                 final convoA = conversations[a.uid];
                 final convoB = conversations[b.uid];
 
-                final unreadA = (convoA?.unreadCount ?? 0) > 0;
-                final unreadB = (convoB?.unreadCount ?? 0) > 0;
+                // Prioritize users with conversations
+                final hasConvoA = convoA != null;
+                final hasConvoB = convoB != null;
 
-                if (unreadA != unreadB) {
-                  return unreadA ? -1 : 1;
+                if (hasConvoA != hasConvoB) {
+                  return hasConvoA ? -1 : 1;
                 }
 
-                if (convoA != null && convoB != null) {
+                // If both have conversations, prioritize unread messages
+                if (hasConvoA && hasConvoB) {
+                  final unreadA = (convoA?.unreadCount ?? 0) > 0;
+                  final unreadB = (convoB?.unreadCount ?? 0) > 0;
+
+                  if (unreadA != unreadB) {
+                    return unreadA ? -1 : 1;
+                  }
+
+                  // Then sort by last message time
                   final timeA = convoA.updatedAt;
                   final timeB = convoB.updatedAt;
                   if (timeA != null && timeB != null) {
@@ -79,20 +97,24 @@ class _AdminChatManagerScreenState extends State<AdminChatManagerScreen> {
                   }
                 }
 
-                if (convoA != null) return -1;
-                if (convoB != null) return 1;
-
                 return a.name.compareTo(b.name);
               });
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: users.length,
-                itemBuilder: (context, index) {
-                  final user = users[index];
-                  final conversation = conversations[user.uid];
-                  return _buildUserChatCard(user, conversation);
+              return RefreshIndicator(
+                onRefresh: () async {
+                  // The StreamBuilder handles real-time updates automatically
+                  // This refresh indicator is just for visual feedback
+                  return Future<void>.delayed(const Duration(milliseconds: 500));
                 },
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final user = users[index];
+                    final conversation = conversations[user.uid];
+                    return _buildUserChatCard(user, conversation);
+                  },
+                ),
               );
             },
           );

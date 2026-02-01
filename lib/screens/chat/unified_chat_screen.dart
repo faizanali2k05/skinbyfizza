@@ -49,26 +49,47 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
     }
 
     _currentUserId = currentUser.uid;
-    print('UnifiedChatScreen: Current user: $_currentUserId');
     
-    // Determine if current user is admin and who we're chatting with
-    final isCurrentUserAdmin = currentUser.uid == 'admin_uid';
+    // Determine if current user is admin by checking their role in the database
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUserId).get();
+    final isCurrentUserAdmin = userDoc.exists && userDoc.data() != null && (userDoc.data() as Map<String, dynamic>)['role'] == 'admin';
     
-    String userId, doctorId;
+    String userId, adminId;
     if (isCurrentUserAdmin) {
       // Admin mode: chatting with the user passed in
       _isAdmin = true;
       _otherUserId = widget.otherUserId ?? '';
       userId = _otherUserId;  // The user being chatted with
-      doctorId = _currentUserId;  // The admin
-      print('UnifiedChatScreen: Admin mode - chatting with user: $_otherUserId');
+      adminId = _currentUserId;  // The admin
     } else {
       // User mode: always chatting with admin
       _isAdmin = false;
-      _otherUserId = 'admin_uid';
       userId = _currentUserId;  // The current user
-      doctorId = _otherUserId;  // The admin
-      print('UnifiedChatScreen: User mode - chatting with admin');
+      
+      // Find the actual admin user ID
+      final adminQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'admin')
+          .limit(1)
+          .get();
+          
+      if (adminQuery.docs.isNotEmpty) {
+        adminId = adminQuery.docs.first.id;
+        _otherUserId = adminId;
+      } else {
+        // No admin found in the system
+        print('UnifiedChatScreen: No admin found.');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _conversationId = null; // Important: stay null to show error/empty state
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Our doctors are currently unavailable. Please try again later.')),
+          );
+        }
+        return;
+      }
     }
 
     if (_otherUserId.isEmpty) {
@@ -78,10 +99,8 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
     }
 
     try {
-      print('UnifiedChatScreen: Getting conversation with userId=$userId, doctorId=$doctorId');
-      final conversationId = await _chatService.getOrCreateConversation(userId, doctorId);
-      print('UnifiedChatScreen: Got conversation ID: $conversationId');
-
+      final conversationId = await _chatService.getOrCreateConversation(userId, adminId);
+      
       if (mounted) {
         setState(() {
           _conversationId = conversationId;
@@ -89,7 +108,6 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         });
         
         // Mark messages as read
-        print('UnifiedChatScreen: Marking messages as read');
         if (conversationId != null) {
           await _chatService.markMessagesAsRead(conversationId);
         }
@@ -123,6 +141,9 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         senderName: _currentUserName,
         senderRole: _isAdmin ? 'admin' : 'user',
       );
+      
+      // Force refresh the conversation to ensure real-time updates
+      await _chatService.forceRefreshConversation(_conversationId!);
       
       // Auto-scroll to new message
       Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);

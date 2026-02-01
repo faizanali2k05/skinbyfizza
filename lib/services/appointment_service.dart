@@ -23,7 +23,8 @@ class AppointmentService {
     return _firestore
         .collection('appointments')
         .where('userId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
+        .orderBy('appointmentDate', descending: true)  // Order by appointment date
+        .orderBy('appointmentTime', descending: true)  // Then by appointment time
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => AppointmentModel.fromSnapshot(doc))
@@ -108,7 +109,8 @@ class AppointmentService {
   Stream<List<AppointmentModel>> getAllAppointmentsStream() {
     return _firestore
         .collection('appointments')
-        .orderBy('createdAt', descending: true)
+        .orderBy('appointmentDate', descending: true)  // Order by appointment date
+        .orderBy('appointmentTime', descending: true)  // Then by appointment time
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => AppointmentModel.fromSnapshot(doc))

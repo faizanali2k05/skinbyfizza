@@ -22,21 +22,21 @@ class AppointmentDetailScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance.collection('appointments').doc(appointmentId).get(),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance.collection('appointments').doc(appointmentId).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
+      
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-
+      
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Appointment not found'));
+            return const Center(child: Text('Appointment not found')); 
           }
-
+      
           final appointment = AppointmentModel.fromMap(
             snapshot.data!.data() as Map<String, dynamic>,
             snapshot.data!.id,

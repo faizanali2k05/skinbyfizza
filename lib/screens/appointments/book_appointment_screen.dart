@@ -134,12 +134,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       final appointmentTime = "${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}";
 
       // Book the appointment
-      await _appointmentService.createAppointment(
+      final result = await _appointmentService.createAppointment(
         procedureId: _selectedProcedure!.id,
         procedureName: _selectedProcedure!.name,
         appointmentDate: appointmentDate,
         appointmentTime: appointmentTime,
       );
+
+      if (result != null) {
+        throw Exception(result);
+      }
       
       if (mounted) {
         // If Admin booked, show specific message
@@ -148,7 +152,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             : 'Appointment booked successfully!';
             
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage)));
-        Navigator.pop(context);
+        
+        // Pop twice to go back to dashboard/home where the appointment will appear
+        // Or navigate to appointments list to see the booked appointment
+        Navigator.pop(context); // Close the booking screen
+        
+        // Optionally navigate to the appointments list to see the new appointment
+        // Uncomment the next line if you want to navigate to appointments after booking
+        // Navigator.pushNamed(context, AppRoutes.appointments);
       }
     } catch (e) {
       if (mounted) {

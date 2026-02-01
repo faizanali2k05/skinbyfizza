@@ -15,6 +15,7 @@ import '../appointments/appointment_detail_screen.dart';
 import '../appointments/reschedule_screen.dart';
 import '../appointments/book_appointment_screen.dart';
 import 'notifications_screen.dart';
+import '../../constants/currency.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -305,7 +306,8 @@ class _DashboardState extends State<Dashboard> {
       stream: FirebaseFirestore.instance
           .collection('appointments')
           .where('userId', isEqualTo: currentUser!.uid)
-          .orderBy('createdAt', descending: false) // Changed to use createdAt and order properly
+          .orderBy('appointmentDate')
+          .orderBy('appointmentTime')
           .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
@@ -341,7 +343,62 @@ class _DashboardState extends State<Dashboard> {
           );
         }
 
-        final doc = snapshot.data!.docs.first;
+        // Filter for upcoming appointments (status: booked, confirmed; and date is in the future)
+        final allDocs = snapshot.data!.docs;
+        final upcomingDocs = allDocs.where((doc) {
+          final appointment = AppointmentModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+          
+          // Parse the appointment date
+          DateTime appointmentDateTime = DateTime.now();
+          try {
+            final dateParts = appointment.appointmentDate.split('-');
+            final timeParts = appointment.appointmentTime.split(':');
+            if (dateParts.length == 3 && timeParts.length >= 2) {
+              final year = int.parse(dateParts[0]);
+              final month = int.parse(dateParts[1]);
+              final day = int.parse(dateParts[2]);
+              final hour = int.parse(timeParts[0]);
+              final minute = int.parse(timeParts[1]);
+              appointmentDateTime = DateTime(year, month, day, hour, minute);
+            }
+          } catch (e) {
+            print('Error parsing appointment date: $e');
+          }
+          
+          // Check if status is upcoming and date is in the future
+          return (appointment.status == 'booked' || appointment.status == 'confirmed') &&
+                 appointmentDateTime.isAfter(DateTime.now());
+        }).toList();
+
+        if (upcomingDocs.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: AppStyles.cardDecoration,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.calendar_today_outlined, size: 48, color: Colors.grey),
+                const SizedBox(height: 12),
+                const Text(
+                  "No upcoming appointments.", 
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushNamed(context, AppRoutes.bookAppointment),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text("Book Appointment", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final doc = upcomingDocs.first;
         final appointment = AppointmentModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
 
         // Parse the appointment date string to a DateTime object
@@ -640,7 +697,7 @@ class _DashboardState extends State<Dashboard> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "\$${procedure.price.toStringAsFixed(0)}",
+                    CurrencyConstants.formatCurrency(procedure.price, currencyCode: 'AED'),
                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,

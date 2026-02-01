@@ -71,13 +71,28 @@ class NotificationService {
     return FirebaseFirestore.instance
         .collection('notifications')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
+        .orderBy('createdAt', descending: true) // Added explicit ordering
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => NotificationModel.fromSnapshot(doc))
             .toList())
         .handleError((error) {
           print('Error fetching notifications stream: $error');
+          return <NotificationModel>[];
+        });
+  }
+
+  /// Get real-time stream of notifications for admin (across all users)
+  Stream<List<NotificationModel>> getAdminNotificationsStream() {
+    return FirebaseFirestore.instance
+        .collection('notifications')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => NotificationModel.fromSnapshot(doc))
+            .toList())
+        .handleError((error) {
+          print('Error fetching admin notifications stream: $error');
           return <NotificationModel>[];
         });
   }

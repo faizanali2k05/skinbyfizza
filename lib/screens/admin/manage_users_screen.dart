@@ -233,7 +233,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _usersRef.snapshots(),
+        stream: _usersRef.orderBy('createdAt', descending: true).snapshots(),
         builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
             if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
@@ -241,28 +241,21 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             final docs = snapshot.data?.docs ?? [];
             if (docs.isEmpty) return const Center(child: Text("No users found."));
 
-            final sortedDocs = docs.toList()..sort((a, b) {
-              final aData = a.data() as Map<String, dynamic>;
-              final bData = b.data() as Map<String, dynamic>;
-              
-              final aTime = aData['createdAt'] as Timestamp?;
-              final bTime = bData['createdAt'] as Timestamp?;
-              
-              if (aTime == null && bTime == null) return 0;
-              if (aTime == null) return 1;
-              if (bTime == null) return -1;
-              
-              return bTime.compareTo(aTime);
-            });
-
-            return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: sortedDocs.length,
-                itemBuilder: (context, index) {
-                    final data = sortedDocs[index].data() as Map<String, dynamic>;
-                    final user = UserModel.fromMap(data, sortedDocs[index].id);
-                    return _buildUserCard(user);
-                },
+            return RefreshIndicator(
+              onRefresh: () async {
+                // The StreamBuilder handles real-time updates automatically
+                // This refresh indicator is just for visual feedback
+                return Future<void>.delayed(const Duration(milliseconds: 500));
+              },
+              child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                      final data = docs[index].data() as Map<String, dynamic>;
+                      final user = UserModel.fromMap(data, docs[index].id);
+                      return _buildUserCard(user);
+                  },
+              ),
             );
         },
       ),

@@ -6,6 +6,7 @@ import '../../constants/styles.dart';
 import '../../routes/app_routes.dart';
 import '../../models/procedure_model.dart';
 import '../chat/unified_chat_screen.dart';
+import '../../constants/currency.dart';
 
 class ProceduresListScreen extends StatefulWidget {
   final bool isAdmin;
@@ -222,7 +223,7 @@ class _ProceduresListScreenState extends State<ProceduresListScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "\$${procedure.price.toStringAsFixed(0)}",
+                      CurrencyConstants.formatCurrency(procedure.price, currencyCode: 'AED'),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
