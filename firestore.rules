@@ -35,12 +35,11 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
-    // Check if user is conversation participant
-    function isConversationParticipant(conversationId) {
-      let conversation = get(/databases/$(database)/documents/conversations/$(conversationId)).data;
+    // Check if user is participant (validates against provided data object)
+    function isParticipant(data) {
       return isAuthenticated() && 
-             (request.auth.uid == conversation.userId ||
-              request.auth.uid == conversation.adminId ||
+             (request.auth.uid == data.userId ||
+              request.auth.uid == data.adminId ||
               isAdmin());
     }
 
@@ -48,7 +47,7 @@ service cloud.firestore {
     // users/{uid}
     // Each user has a document with their profile
     match /users/{uid} {
-      allow read: if request.auth.uid == uid || isAdmin();
+      allow read: if request.auth.uid == uid || isAdmin() || resource.data.role == 'admin';
       allow create: if request.auth.uid == uid && canCreateUser(request.resource.data);
       allow update: if request.auth.uid == uid || isAdmin();
       allow delete: if isAdmin();
@@ -85,13 +84,13 @@ service cloud.firestore {
     // conversations/{conversationId}/messages/{messageId}
     match /conversations/{conversationId} {
       // Read: only participants or admin
-      allow read: if isConversationParticipant(conversationId);
+      allow read: if isParticipant(resource.data);
       
       // Create: authenticated users
       allow create: if isAuthenticated() && validateConversationCreate();
       
       // Update: only participants or admin
-      allow update: if isConversationParticipant(conversationId);
+      allow update: if isParticipant(resource.data);
       
       // Delete: admin only
       allow delete: if isAdmin();
@@ -99,7 +98,7 @@ service cloud.firestore {
       // ===== Messages Subcollection =====
       match /messages/{messageId} {
         // Read: only conversation participants or admin
-        allow read: if isConversationParticipant(conversationId);
+        allow read: if isParticipant(get(/databases/$(database)/documents/conversations/$(conversationId)).data);
         
         // Create: authenticated users, valid message data
         allow create: if isAuthenticated() && validateMessageCreate();

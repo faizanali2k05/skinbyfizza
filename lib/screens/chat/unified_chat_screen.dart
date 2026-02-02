@@ -48,8 +48,11 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
   }
 
   Future<void> _initializeChat() async {
+    print('UnifiedChatScreen: Starting chat initialization');
+    
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
+      print('UnifiedChatScreen: No current user found');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -61,13 +64,19 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
 
     _currentUserId = currentUser.uid;
     _currentUserName = currentUser.displayName ?? 'User';
+    print('UnifiedChatScreen: Current user ID: $_currentUserId, Name: $_currentUserName');
     
     try {
       // Determine if current user is admin by checking their role in the database
+      print('UnifiedChatScreen: Fetching user document for ID: $_currentUserId');
       DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUserId).get();
+      print('UnifiedChatScreen: User document exists: ${userDoc.exists}');
+      
       final userData = userDoc.data() as Map<String, dynamic>?;
+      print('UnifiedChatScreen: User data: $userData');
       
       if (userData == null) {
+        print('UnifiedChatScreen: User data is null');
         if (mounted) {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -78,13 +87,17 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
       }
       
       final isCurrentUserAdmin = userData['role'] == 'admin';
+      print('UnifiedChatScreen: Is current user admin: $isCurrentUserAdmin');
       
       String userId, adminId;
       if (isCurrentUserAdmin) {
         // Admin mode: chatting with the user passed in
         _isAdmin = true;
         _otherUserId = widget.otherUserId ?? '';
+        print('UnifiedChatScreen: Admin mode, other user ID: $_otherUserId');
+        
         if (_otherUserId.isEmpty) {
+          print('UnifiedChatScreen: Other user ID is empty');
           if (mounted) {
             setState(() => _isLoading = false);
             ScaffoldMessenger.of(context).showSnackBar(
@@ -99,16 +112,21 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         // User mode: always chatting with admin
         _isAdmin = false;
         userId = _currentUserId;  // The current user
+        print('UnifiedChatScreen: User mode, user ID: $userId');
         
         // Find the actual admin user ID
+        print('UnifiedChatScreen: Searching for admin user');
         final adminQuery = await FirebaseFirestore.instance
             .collection('users')
             .where('role', isEqualTo: 'admin')
             .limit(1)
             .get();
+        
+        print('UnifiedChatScreen: Found ${adminQuery.docs.length} admin(s)');
             
         if (adminQuery.docs.isEmpty) {
           // No admin found in the system
+          print('UnifiedChatScreen: No admin found in the system');
           if (mounted) {
             setState(() {
               _isLoading = false;
@@ -123,10 +141,13 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         
         adminId = adminQuery.docs.first.id;
         _otherUserId = adminId;
+        print('UnifiedChatScreen: Found admin ID: $adminId');
       }
 
       // Get or create conversation
+      print('UnifiedChatScreen: Creating/getting conversation for user: $userId, admin: $adminId');
       final conversationId = await _chatService.getOrCreateConversation(userId, adminId);
+      print('UnifiedChatScreen: Conversation ID: $conversationId');
       
       if (conversationId == null) {
         throw Exception('Failed to create conversation');
@@ -137,6 +158,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           _conversationId = conversationId;
           _isLoading = false;
         });
+        print('UnifiedChatScreen: State updated successfully');
         
         // Mark messages as read
         await _chatService.markMessagesAsRead(conversationId);
@@ -162,8 +184,9 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         // Scroll to bottom after a delay
         Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('UnifiedChatScreen: Chat initialization error: $e');
+      print('Stack trace: $stackTrace');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(

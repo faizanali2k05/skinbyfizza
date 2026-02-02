@@ -18,8 +18,11 @@ class ChatService {
   /// Get or create conversation between user and admin
   /// Returns conversation ID
   Future<String?> getOrCreateConversation(String userId, String adminId) async {
+    debugPrint('ChatService: Getting or creating conversation for user: $userId, admin: $adminId');
+    
     try {
       // Try to find existing conversation
+      debugPrint('ChatService: Searching for existing conversation');
       final existing = await _firestore
           .collection('conversations')
           .where('userId', isEqualTo: userId)
@@ -27,11 +30,16 @@ class ChatService {
           .limit(1)
           .get();
 
+      debugPrint('ChatService: Found ${existing.docs.length} existing conversations');
+      
       if (existing.docs.isNotEmpty) {
-        return existing.docs.first.id;
+        final conversationId = existing.docs.first.id;
+        debugPrint('ChatService: Returning existing conversation ID: $conversationId');
+        return conversationId;
       }
 
       // Create new conversation
+      debugPrint('ChatService: Creating new conversation');
       final conversation = ChatConversationModel(
         id: '',
         userId: userId,
@@ -41,10 +49,14 @@ class ChatService {
       final docRef = await _firestore
           .collection('conversations')
           .add(conversation.toMap());
-
-      return docRef.id;
-    } catch (e) {
-      debugPrint('Get or create conversation error: $e');
+      
+      final newConversationId = docRef.id;
+      debugPrint('ChatService: Created new conversation with ID: $newConversationId');
+      
+      return newConversationId;
+    } catch (e, stackTrace) {
+      debugPrint('ChatService: Get or create conversation error: $e');
+      debugPrint('ChatService: Stack trace: $stackTrace');
       return null;
     }
   }
