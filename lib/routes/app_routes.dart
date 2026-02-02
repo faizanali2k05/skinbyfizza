@@ -17,8 +17,7 @@ class AppRoutes {
   static const String passwordRecovery = '/password_recovery';
   static const String home = '/home';
   static const String procedures = '/procedures';
-  static const String aiChat = '/ai_chat';
-  static const String doctorChat = '/doctor_chat';
+  static const String chat = '/chat';
   static const String profile = '/profile';
   static const String adminPanel = '/admin_panel';
   static const String appointments = '/appointments';
@@ -30,7 +29,7 @@ class AppRoutes {
     passwordRecovery: (context) => const PasswordRecoveryScreen(),
     home: (context) => const HomeScreen(),
     procedures: (context) => const ProceduresListScreen(),
-    aiChat: (context) => const UnifiedChatScreen(),
+    chat: (context) => const UnifiedChatScreen(),
     profile: (context) => const ProfileScreen(),
     adminPanel: (context) => const SimpleAdminScreen(),
     appointments: (context) => const AppointmentsListScreen(),

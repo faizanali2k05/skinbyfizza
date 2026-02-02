@@ -339,51 +339,6 @@ class ChatService {
     }
   }
 
-  /// Send AI message
-  Future<String?> sendAiMessage({
-    required String conversationId,
-    required String senderId,
-    required String senderName,
-    required String senderRole,
-    required String text,
-  }) async {
-    try {
-      final message = ChatMessageModel(
-        id: '',
-        senderId: senderId,
-        senderName: senderName,
-        senderRole: senderRole,
-        text: text,
-      );
-
-      await _firestore
-          .collection('conversations')
-          .doc(conversationId)
-          .collection('messages')
-          .add(message.toMap());
-
-      return null;
-    } catch (e) {
-      return 'Error sending AI message: $e';
-    }
-  }
-
-  /// Get AI messages
-  Stream<List<ChatMessageModel>> getAiMessages(String conversationId) {
-    return _firestore
-        .collection('conversations')
-        .doc(conversationId)
-        .collection('messages')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ChatMessageModel.fromSnapshot(doc))
-            .toList())
-        .handleError((error) {
-          debugPrint('Get AI messages error: $error');
-          return <ChatMessageModel>[];
-        });
-  }
 
   /// Get total unread count for user across all conversations
   Future<int> getTotalUnreadCount(String userId) async {

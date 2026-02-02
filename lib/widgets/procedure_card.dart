@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/procedure_model.dart';
 import '../constants/colors.dart';
 import '../constants/styles.dart';
+import '../constants/currency.dart';
 
 class ProcedureCard extends StatelessWidget {
   final ProcedureModel procedure;
@@ -90,7 +91,7 @@ class ProcedureCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Rs ${procedure.price.toStringAsFixed(0)}',
+                          CurrencyConstants.formatCurrency(procedure.price, currencyCode: 'AED'),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

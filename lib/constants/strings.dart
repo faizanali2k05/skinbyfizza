@@ -19,7 +19,7 @@ class AppStrings {
   static const String hello = "Hello,";
   static const String procedures = "Procedures";
   static const String shop = "Shop";
-  static const String aiChat = "Chat"; // Changed from "AI Chat"
+  static const String chat = "Chat";
   static const String medicalTourism = "Medical Tourism";
   static const String bookNow = "Book now";
   static const String browse = "Browse";
@@ -34,6 +34,6 @@ class AppStrings {
   static const String homeTab = "Home";
   static const String proceduresTab = "Procedures";
   static const String shopTab = "Shop";
-  static const String aiChatTab = "Chat"; // Changed from "AI Chat"
+  static const String chatTab = "Chat";
   static const String profileTab = "Profile";
 }

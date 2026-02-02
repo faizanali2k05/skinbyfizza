@@ -42,7 +42,7 @@ class _SignInScreenState extends State<SignInScreen> {
       password: _passwordController.text.trim(),
     );
 
-    if (result == "Success") {
+    if (result == null) {
       // Check role
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {

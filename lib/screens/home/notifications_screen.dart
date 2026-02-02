@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../constants/colors.dart';
 import '../../models/notification_model.dart';
 import '../../services/notification_service.dart';
+import '../../services/chat_service.dart';
+import '../../screens/chat/unified_chat_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -14,6 +16,7 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final NotificationService _notificationService = NotificationService();
+  final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
@@ -61,9 +64,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           if (notifications.isEmpty) {
             return const Center(
-              child: Text(
-                'No notifications yet',
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.notifications_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No notifications yet',
+                    style: TextStyle(fontSize: 18, color: AppColors.textSecondary),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'You\'ll see appointment updates and messages here',
+                    style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             );
           }
@@ -92,11 +108,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isUnread ? AppColors.primary : Colors.grey.shade300,
+                      color: isUnread 
+                          ? _getNotificationColor(notification.type) 
+                          : Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Icon(
-                      Icons.notifications,
+                      _getNotificationIcon(notification.type),
                       color: isUnread ? Colors.white : Colors.grey.shade600,
                       size: 20,
                     ),
@@ -129,6 +147,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     if (isUnread) {
                       await _notificationService.markAsRead(notification.id);
                     }
+                    
+                    // Handle navigation based on notification type
+                    if (notification.type == 'message') {
+                      // Navigate to chat screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UnifiedChatScreen(),
+                        ),
+                      );
+                    } else if (notification.type == 'appointment') {
+                      // For appointment notifications, could navigate to appointments screen
+                      // Navigator.pushNamed(context, '/appointments');
+                    }
                   },
                 ),
               );
@@ -137,6 +169,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         },
       ),
     );
+  }
+
+  IconData _getNotificationIcon(String type) {
+    switch (type) {
+      case 'appointment':
+        return Icons.calendar_today;
+      case 'message':
+        return Icons.message;
+      case 'status_update':
+        return Icons.info;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  Color _getNotificationColor(String type) {
+    switch (type) {
+      case 'appointment':
+        return AppColors.primary;
+      case 'message':
+        return Colors.green;
+      case 'status_update':
+        return Colors.orange;
+      default:
+        return AppColors.primary;
+    }
   }
 
   String _formatDate(DateTime date) {

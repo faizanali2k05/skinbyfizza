@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../constants/colors.dart';
 import '../../constants/strings.dart';
@@ -28,6 +29,7 @@ class _DashboardState extends State<Dashboard> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final User? currentUser = FirebaseAuth.instance.currentUser;
   final ChatService _chatService = ChatService();
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
@@ -36,6 +38,15 @@ class _DashboardState extends State<Dashboard> {
       NotificationService().startListeningForAppointments(currentUser!.uid);
       NotificationService().startListeningForChat(currentUser!.uid);
     }
+  }
+
+  // Helper method to get combined unread count from both notifications and chats
+  Stream<int> _getCombinedUnreadCountStream(String userId) {
+    return Rx.combineLatest2(
+      _notificationService.getUnreadCountStream(userId),
+      _chatService.getUserUnreadCountStream(userId),
+      (int notificationCount, int chatCount) => notificationCount + chatCount,
+    );
   }
 
   // Featured procedures data is now fetched from Firestore
@@ -93,12 +104,12 @@ class _DashboardState extends State<Dashboard> {
                   ),
                   _buildQuickAccessCard(
                     context,
-                    title: AppStrings.aiChat,
-                    subtitle: AppStrings.getAdvice,
-                    icon: Icons.chat_bubble_outline,
-                    color: AppColors.cardAiChat,
-                    iconColor: Colors.teal,
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.aiChat),
+                    title: "My Appointments",
+                    subtitle: "View upcoming visits",
+                    icon: Icons.event_available,
+                    color: AppColors.cardMedical,
+                    iconColor: Colors.blue,
+                    onTap: () => Navigator.pushNamed(context, AppRoutes.appointments),
                   ),
                   _buildDoctorDeskCard(), // Extracted to support stream builder for notification dot
                 ],
@@ -268,22 +279,31 @@ class _DashboardState extends State<Dashboard> {
                 ),
                 StreamBuilder<int>(
                   stream: currentUser != null 
-                      ? _chatService.getUserUnreadCountStream(currentUser!.uid) 
+                      ? _getCombinedUnreadCountStream(currentUser!.uid) 
                       : Stream.value(0),
                   builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data! > 0) {
+                    final unreadCount = snapshot.data ?? 0;
+                    if (unreadCount > 0) {
                       return Positioned(
                         right: 8,
                         top: 8,
                         child: Container(
-                          padding: const EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(6),
                           decoration: const BoxDecoration(
                             color: Colors.red,
                             shape: BoxShape.circle,
                           ),
                           constraints: const BoxConstraints(
-                            minWidth: 8,
-                            minHeight: 8,
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            unreadCount > 9 ? '9+' : unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       );

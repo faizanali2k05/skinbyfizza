@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../constants/colors.dart';
+import '../../constants/currency.dart';
 import '../../constants/styles.dart';
 import '../../models/procedure_model.dart';
 
@@ -272,7 +273,7 @@ class _ManageProceduresScreenState extends State<ManageProceduresScreen> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Text("Rs ${procedure.price.toStringAsFixed(0)}", style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                          Text(CurrencyConstants.formatCurrency(procedure.price, currencyCode: 'AED'), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                           const SizedBox(width: 16),
                           Text("${procedure.sessions} Sessions", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                           const SizedBox(width: 8),

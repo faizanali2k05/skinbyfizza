@@ -50,7 +50,7 @@ class BottomNavBar extends StatelessWidget {
         ),
       ];
     } else {
-      // Original user navigation items with AI Chat instead of notifications
+      // Original user navigation items
       items = [
         const BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
@@ -110,7 +110,7 @@ class BottomNavBar extends StatelessWidget {
                 ),
             ],
           ),
-          label: AppStrings.aiChatTab,
+          label: AppStrings.chatTab,
         ),
         const BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),

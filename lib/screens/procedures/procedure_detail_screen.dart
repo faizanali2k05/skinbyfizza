@@ -241,7 +241,9 @@ class ProcedureDetailScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const UnifiedChatScreen(),
+                        builder: (context) => UnifiedChatScreen(
+                          preFilledMessage: "Hi, I'd like to get more information about ${procedure.name}.",
+                        ),
                       ),
                     );
                   },

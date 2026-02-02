@@ -1,6 +1,6 @@
 # SkinByFizza - Flutter Application
 
-A complete Flutter application for SkinByFizza clinic with Firebase Authentication, Cloud Firestore, Admin Panel, Appointments, Chat, and AI FAQ Assistant.
+A complete Flutter application for SkinByFizza clinic with Firebase Authentication, Cloud Firestore, Admin Panel, Appointments, and Doctor Chat.
 
 ## 🌟 Features Implemented
 
@@ -17,15 +17,7 @@ A complete Flutter application for SkinByFizza clinic with Firebase Authenticati
 - **appointments** - Appointment bookings and management
 - **conversations** - 1-to-1 doctor-user chats (with nested messages)
 - **notifications** - User notifications for appointments and messages
-- **faqs** - FAQ entries for AI Assistant
-- **ai_chat_messages** - Chat history with AI Assistant
 
-### 💬 AI FAQ Chat (No External APIs)
-- Fetches data from FAQs collection
-- Keyword-based matching
-- Formal clinic responses
-- Graceful no-match handling
-- Spark Plan friendly (no API costs)
 
 ### 💬 Doctor Chat
 - Simple 1-to-1 text messaging
@@ -50,7 +42,7 @@ A complete Flutter application for SkinByFizza clinic with Firebase Authenticati
 ### 🎨 UI Features
 - Clean, minimal design
 - Gold theme (#D4AF37) for user messages
-- Light theme for AI & doctor messages
+- Light theme for doctor messages
 - Proper loading states
 - No stuck loaders
 - Material Design 3
@@ -75,21 +67,18 @@ lib/
 │   ├── chat_message_model.dart
 │   ├── chat_conversation_model.dart
 │   ├── notification_model.dart
-│   ├── faq_model.dart
 │   └── procedure_model.dart
 ├── services/                 # Business logic
 │   ├── auth_service.dart
 │   ├── appointment_service.dart
 │   ├── chat_service.dart
-│   ├── faq_service.dart
-│   ├── ai_service.dart
 │   ├── notification_service.dart
 │   └── procedure_service.dart
 ├── screens/                  # UI screens
 │   ├── auth/                 # Login, signup, password recovery
 │   ├── home/                 # Dashboard, appointments, notifications
 │   ├── appointments/         # Book, list, detail, reschedule
-│   ├── chat/                 # AI chat and doctor chat
+│   ├── chat/                 # Doctor chat
 │   ├── procedures/           # Procedures listing
 │   ├── profile/              # User profile
 │   └── admin/                # Admin management screens
@@ -135,13 +124,11 @@ lib/
 The app will automatically populate sample data on first run. Manual collections to create:
 
 ```
-faqs/              # FAQ entries for AI Assistant
 procedures/        # Procedures/services
 users/             # User profiles
 appointments/      # Appointments
 notifications/     # Notifications
 conversations/     # Conversations (with nested messages subcollection)
-ai_chat_messages/  # AI chat history
 ```
 
 ### 2. Deploy Firestore Rules
@@ -195,11 +182,6 @@ db.collection('users').doc(uid).set({
 3. User receives notification
 4. System schedules local notification
 
-### AI Chat
-1. User sends message
-2. Message saved to Firestore
-3. FAQ service matches keywords
-4. Response displayed in chat
 
 ### Doctor Chat
 1. User initiates conversation with doctor
@@ -242,7 +224,7 @@ The app uses simple, indexed-by-default queries:
 - `appointments where(userId) orderBy(createdAt)` ✅
 - `notifications where(userId) orderBy(createdAt)` ✅
 - `conversations where(userId)` ✅
-- `faqs` simple reads ✅
+
 
 No complex composite indexes required!
 
