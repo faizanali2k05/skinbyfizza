@@ -1,0 +1,19 @@
+# Deploys the Skin backend on the VPS.
+# - Joins n8n_default so it can reach skin-postgres (db) and n8n (AI) by name.
+# - Publishes on the docker host gateway (172.17.0.1:8095) so the existing
+#   Caddy reverse proxy can route skinapi.seemaai.co.uk -> here, exactly like
+#   the n8n / api blocks already do.
+services:
+  skin-backend:
+    build: .
+    container_name: skin-backend
+    restart: always
+    env_file: .env
+    ports:
+      - "172.17.0.1:8095:3000"
+    networks:
+      - n8n_default
+
+networks:
+  n8n_default:
+    external: true

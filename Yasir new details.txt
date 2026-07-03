@@ -1,0 +1,25 @@
+give limited access to Karachi 
+create the form in steps and make the form in Urdu, English and Arabic 	{ Doc would write 2 types instructions. one for the team and one for the doctor own self.) doctor would laso have the option to add the interest the rating to 5. how interested she is 
+
+customer login would be from the WhatsApp number and currently set the WhatsApp number as the password. and also be able to login through the email. 
+WhatsApp number must have a country code...
+
+Manage wont have: can not delete, deactivate and make admin
+
+Add the prospection in the profile of the user and in perception the doctor would add the product name and it's price. this would also can have the service like botox.
+
+Change the "upcoming" in profile to "follow Up".
+
+{ When the user send a message on the app it would goes in the general and the manager would check the chat and if he thinks then the would set chat as primary and the 
+doctor would only see the primary chat and then doctor would response to that user.} {The manager would tag one ore multiple message to the doctor an the doctor would only see those messages}
+
+Add a customer type "VIP" and it would also show to the customer and the doctor and the doctor would be able to see all the raw chat of the vip customer.
+
+{AI image before and after} 
+
+Send Yasir the colander about the AI before and after result.
+
+{add the time difference between the session/visit of the procedure when adding a new procedure} remove the price field from the add procedure...
+
+add the filer by location(city) in the "book appointment" so that the doctor can easily check it.
+the ui of the "manage appointment "" assign new" => Full name: City: signature(procedure). the doctor would be able to search the user through number....

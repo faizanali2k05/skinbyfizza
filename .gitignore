@@ -1,0 +1,17 @@
+# Secrets — never commit
+.env
+.env.*
+*.pem
+*.key
+.mcp.json
+
+# n8n / server helper outputs
+skin-postgres-credentials.txt
+JWT_SECRET.txt
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Node (mobile app has its own .gitignore too)
+node_modules/

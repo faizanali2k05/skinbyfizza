@@ -1,0 +1,75 @@
+import React from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  ViewStyle,
+  RefreshControl,
+} from 'react-native';
+import { SafeAreaView, Edge } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { colors } from '../theme/colors';
+import { screenPadding } from '../theme/spacing';
+
+type Props = {
+  children: React.ReactNode;
+  scroll?: boolean;
+  padded?: boolean;
+  edges?: Edge[];
+  style?: ViewStyle;
+  contentStyle?: ViewStyle;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+};
+
+/** Standard dark screen wrapper with safe-area + optional scroll/refresh. */
+export function Screen({
+  children,
+  scroll = false,
+  padded = true,
+  edges = ['top'],
+  style,
+  contentStyle,
+  refreshing,
+  onRefresh,
+}: Props) {
+  const inner: ViewStyle[] = [
+    padded ? styles.padded : styles.flush,
+    contentStyle ?? {},
+  ];
+
+  return (
+    <SafeAreaView style={[styles.root, style]} edges={edges}>
+      <StatusBar style="light" />
+      {scroll ? (
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={[styles.scrollContent, ...inner]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl
+                refreshing={!!refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.gold}
+              />
+            ) : undefined
+          }
+        >
+          {children}
+        </ScrollView>
+      ) : (
+        <View style={[styles.flex, ...inner]}>{children}</View>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: 32 },
+  padded: { paddingHorizontal: screenPadding },
+  flush: {},
+});

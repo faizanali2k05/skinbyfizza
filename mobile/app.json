@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Skin By Dr. Fizza G",
+    "slug": "skin-by-dr-fizza-g",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "skinbyfizza",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0B0D",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.skinbyfizza.app"
+    },
+    "android": {
+      "package": "com.skinbyfizza.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0B0D",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "color": "#C9A24B"
+        }
+      ],
+      "expo-splash-screen"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiBaseUrl": "https://skinapi.seemaai.co.uk"
+    }
+  }
+}
