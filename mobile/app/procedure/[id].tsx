@@ -3,7 +3,8 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, Button, Badge, EmptyState } from '../../src/components';
-import { colors } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
+import { AppColors } from '../../src/theme/palettes';
 import { radius, spacing } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
 import { useAuth } from '../../src/auth/AuthContext';
@@ -12,6 +13,8 @@ import { api } from '../../src/api/services';
 import { procedurePlaceholder } from '../../src/data/decor';
 
 function Meta({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.meta}>
       <Ionicons name={icon} size={18} color={colors.gold} />
@@ -29,6 +32,8 @@ export default function ProcedureDetail() {
   const { data, loading } = useQuery(api.getProcedures);
 
   const p = (data ?? []).find((x) => x.id === id);
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   if (loading && !data) {
     return (
@@ -96,6 +101,7 @@ export default function ProcedureDetail() {
 
 function BackBar() {
   const router = useRouter();
+  const { colors } = useTheme();
   return (
     <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginTop: spacing.lg }}>
       <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
@@ -103,7 +109,7 @@ function BackBar() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: AppColors) => StyleSheet.create({
   hero: { height: 320, justifyContent: 'flex-end' },
   heroImg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(11,11,13,0.4)' },

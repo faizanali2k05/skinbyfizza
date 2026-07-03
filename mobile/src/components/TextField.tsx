@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  TextInput,
-  TextInputProps,
-  View,
-  Pressable,
-} from 'react-native';
+import { StyleSheet, TextInput, TextInputProps, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import { radius, spacing } from '../theme/spacing';
 import { fonts } from '../theme/typography';
 
@@ -20,15 +14,8 @@ type Props = TextInputProps & {
   secure?: boolean;
 };
 
-export function TextField({
-  label,
-  error,
-  hint,
-  leftIcon,
-  secure,
-  style,
-  ...rest
-}: Props) {
+export function TextField({ label, error, hint, leftIcon, secure, style, ...rest }: Props) {
+  const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(!!secure);
 
@@ -42,17 +29,13 @@ export function TextField({
       <View
         style={[
           styles.field,
-          focused && styles.focused,
-          !!error && styles.errored,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+          focused && { borderColor: colors.gold },
+          !!error && { borderColor: colors.error },
         ]}
       >
         {leftIcon ? (
-          <Ionicons
-            name={leftIcon}
-            size={18}
-            color={colors.textMuted}
-            style={styles.leftIcon}
-          />
+          <Ionicons name={leftIcon} size={18} color={colors.textMuted} style={styles.leftIcon} />
         ) : null}
         <TextInput
           {...rest}
@@ -66,7 +49,7 @@ export function TextField({
             rest.onBlur?.(e);
           }}
           placeholderTextColor={colors.textMuted}
-          style={[styles.input, style]}
+          style={[styles.input, { color: colors.textPrimary }, style]}
         />
         {secure ? (
           <Pressable onPress={() => setHidden((h) => !h)} hitSlop={10}>
@@ -97,22 +80,12 @@ const styles = StyleSheet.create({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     paddingHorizontal: spacing.lg,
     height: 54,
   },
-  focused: { borderColor: colors.gold },
-  errored: { borderColor: colors.error },
   leftIcon: { marginRight: spacing.sm },
-  input: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontFamily: fonts.regular,
-    fontSize: 15,
-    height: '100%',
-  },
+  input: { flex: 1, fontFamily: fonts.regular, fontSize: 15, height: '100%' },
   helper: { marginTop: spacing.xs },
 });

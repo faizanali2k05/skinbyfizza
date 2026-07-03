@@ -4,7 +4,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, EmptyState } from '../../src/components';
-import { colors } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
+import { AppColors } from '../../src/theme/palettes';
 import { radius, spacing } from '../../src/theme/spacing';
 import { fonts } from '../../src/theme/typography';
 import { useI18n } from '../../src/i18n';
@@ -17,6 +18,8 @@ export default function Categories() {
   const router = useRouter();
   const { data: procedures, loading, refetch } = useQuery(api.getProcedures);
   const [active, setActive] = useState<string | null>(null);
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   // Real categories derived from the treatments catalogue.
   const categories = useMemo(() => {
@@ -75,6 +78,7 @@ export default function Categories() {
 }
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
       <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
@@ -82,7 +86,7 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: AppColors) => StyleSheet.create({
   titleRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: spacing.sm, marginBottom: spacing.xl,

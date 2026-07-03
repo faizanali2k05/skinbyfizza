@@ -2,9 +2,12 @@ import { useEffect } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, Badge } from '../../src/components';
-import { colors } from '../../src/theme/colors';
+import { Screen, Text } from '../../src/components';
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
+import { AppColors } from '../../src/theme/palettes';
 import { radius, spacing } from '../../src/theme/spacing';
+import { useI18n } from '../../src/i18n';
+import { AppLocale } from '../../src/i18n/translations';
 import { useAuth } from '../../src/auth/AuthContext';
 
 type Tile = {
@@ -12,12 +15,14 @@ type Tile = {
   title: string;
   sub: string;
   tone: string;
-  onPress?: () => void;
-  soon?: boolean;
+  onPress: () => void;
 };
 
 export default function StaffDashboard() {
   const { user, signOut, refreshUser } = useAuth();
+  const { colors, isDark, toggle } = useTheme();
+  const { locale, setLocale } = useI18n();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const isManager = user?.role === 'manager';
 
@@ -25,79 +30,97 @@ export default function StaffDashboard() {
     refreshUser().catch(() => {});
   }, [refreshUser]);
 
-  const soon = (label: string) =>
-    Alert.alert(label, 'This console section activates once its n8n workflow is live.');
-
+  // Doctor gets treatment management; manager only triages people & bookings.
   const tiles: Tile[] = [
-    { icon: 'chatbubbles-outline', title: 'Chats', sub: isManager ? 'Triage & tag to doctor' : 'Primary & VIP threads', tone: colors.info, onPress: () => soon('Chats'), soon: true },
-    { icon: 'calendar-outline', title: 'Appointments', sub: 'Confirm, assign & reschedule', tone: colors.sage, onPress: () => soon('Appointments'), soon: true },
-    { icon: 'people-outline', title: 'Users', sub: isManager ? 'View & register leads' : 'Manage patients', tone: colors.gold, onPress: () => soon('Users'), soon: true },
-    { icon: 'sparkles-outline', title: 'Procedures', sub: 'Add & edit treatments', tone: colors.rose, onPress: () => soon('Procedures'), soon: true },
-    { icon: 'medkit-outline', title: 'Prescriptions', sub: 'Products & services', tone: colors.gold, onPress: () => soon('Prescriptions'), soon: true },
-    { icon: 'information-circle-outline', title: 'About the clinic', sub: 'Info & locations', tone: colors.info, onPress: () => soon('About'), soon: true },
+    { icon: 'chatbubbles-outline', title: 'Chats', sub: isManager ? 'Triage & tag to doctor' : 'Primary & VIP threads', tone: colors.info, onPress: () => router.push('/(staff)/chats') },
+    { icon: 'people-outline', title: 'Users', sub: isManager ? 'Rate, VIP & register leads' : 'Manage patients', tone: colors.gold, onPress: () => router.push('/(staff)/users') },
+    { icon: 'calendar-outline', title: 'Appointments', sub: 'Confirm & manage', tone: colors.sage, onPress: () => router.push('/(staff)/appointments') },
+    ...(!isManager
+      ? [{ icon: 'sparkles-outline' as const, title: 'Treatments', sub: 'Add, edit & remove', tone: colors.rose, onPress: () => router.push('/(staff)/procedures') }]
+      : []),
   ];
+
+  const cycleLocale = () => {
+    const order: AppLocale[] = ['en', 'ur', 'ar'];
+    setLocale(order[(order.indexOf(locale) + 1) % order.length]);
+  };
+
+  const logout = () =>
+    Alert.alert('Log out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/(auth)/welcome');
+        },
+      },
+    ]);
 
   return (
     <Screen scroll padded>
       <View style={styles.header}>
         <View style={styles.flex}>
           <Text variant="overline" color={colors.goldLight}>
-            {isManager ? 'Manager console' : 'Doctor console'}
+            {isManager ? 'Manager portal' : 'Doctor portal'}
           </Text>
           <Text variant="display">{user?.full_name ?? 'Clinic'}</Text>
         </View>
-        <Pressable
-          style={styles.logout}
-          onPress={() =>
-            Alert.alert('Log out', '', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Log out', style: 'destructive', onPress: () => signOut() },
-            ])
-          }
-        >
-          <Ionicons name="log-out-outline" size={20} color={colors.error} />
-        </Pressable>
       </View>
 
       <View style={styles.grid}>
-        {tiles.map((tabItem) => (
-          <Pressable key={tabItem.title} style={styles.tile} onPress={tabItem.onPress}>
-            <View style={[styles.tileIcon, { backgroundColor: tabItem.tone + '22' }]}>
-              <Ionicons name={tabItem.icon} size={22} color={tabItem.tone} />
+        {tiles.map((tile) => (
+          <Pressable key={tile.title} style={styles.tile} onPress={tile.onPress}>
+            <View style={[styles.tileIcon, { backgroundColor: tile.tone + '22' }]}>
+              <Ionicons name={tile.icon} size={22} color={tile.tone} />
             </View>
-            <View style={styles.tileTitleRow}>
-              <Text variant="title">{tabItem.title}</Text>
-              {tabItem.soon ? <Badge label="soon" tone="neutral" /> : null}
-            </View>
-            <Text variant="caption">{tabItem.sub}</Text>
+            <Text variant="title">{tile.title}</Text>
+            <Text variant="caption">{tile.sub}</Text>
           </Pressable>
         ))}
       </View>
 
-      <Pressable style={styles.switchBtn} onPress={() => router.push('/(patient)/discover')}>
-        <Ionicons name="phone-portrait-outline" size={18} color={colors.textSecondary} />
-        <Text variant="label" color={colors.textSecondary}>Switch to patient view</Text>
+      {/* Settings — kept inside the portal so staff never need the patient app */}
+      <Text variant="overline" style={styles.settingsLabel}>Settings</Text>
+
+      <Pressable style={styles.settingRow} onPress={toggle}>
+        <Ionicons name={isDark ? 'moon-outline' : 'sunny-outline'} size={20} color={colors.gold} />
+        <Text variant="label" style={styles.flex}>Appearance</Text>
+        <Text variant="overline" color={colors.gold}>{isDark ? 'DARK' : 'LIGHT'}</Text>
+      </Pressable>
+
+      <Pressable style={styles.settingRow} onPress={cycleLocale}>
+        <Ionicons name="language-outline" size={20} color={colors.gold} />
+        <Text variant="label" style={styles.flex}>Language</Text>
+        <Text variant="overline" color={colors.gold}>{locale.toUpperCase()}</Text>
+      </Pressable>
+
+      <Pressable style={styles.logout} onPress={logout}>
+        <Ionicons name="log-out-outline" size={20} color={colors.error} />
+        <Text variant="label" color={colors.error}>Log out</Text>
       </Pressable>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', marginTop: spacing.sm, marginBottom: spacing.xl },
-  logout: {
-    width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center',
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  tile: {
-    width: '47%', flexGrow: 1, backgroundColor: colors.surface, borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: spacing.lg, gap: 4,
-  },
-  tileIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-  tileTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  switchBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-    paddingVertical: spacing.xl, marginTop: spacing.lg,
-  },
-});
+const makeStyles = (c: AppColors) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    header: { flexDirection: 'row', alignItems: 'flex-start', marginTop: spacing.sm, marginBottom: spacing.xl },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+    tile: {
+      width: '47%', flexGrow: 1, backgroundColor: c.surface, borderRadius: radius.lg,
+      borderWidth: StyleSheet.hairlineWidth, borderColor: c.border, padding: spacing.lg, gap: 4,
+    },
+    tileIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+    settingsLabel: { marginTop: spacing.xxl, marginBottom: spacing.sm },
+    settingRow: {
+      flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.lg,
+      borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.divider,
+    },
+    logout: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+      paddingVertical: spacing.xl, marginTop: spacing.lg,
+    },
+  });

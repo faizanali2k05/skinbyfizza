@@ -3,6 +3,7 @@
 const express = require('express');
 const { query } = require('../db');
 const { requireAuth, requireRole } = require('../auth/middleware');
+const { notifyUser, pushStaff } = require('../lib/notify');
 
 const router = express.Router();
 
@@ -48,7 +49,25 @@ router.post('/book', requireAuth, async (req, res, next) => {
        RETURNING id, scheduled_at, status, city, procedure_id`,
       [req.user.id, b.procedure_id || null, b.scheduled_at, b.city || null],
     );
-    return res.status(201).json({ appointment: result.rows[0] });
+    const appt = result.rows[0];
+
+    // Optional consultation intake captured during booking.
+    const c = b.consultation;
+    if (c && typeof c === 'object') {
+      await query(
+        `INSERT INTO consultations
+           (user_id, appointment_id, full_name, date_of_birth, address, phone, email, referred_by, main_goal, form, signature, agreed)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [
+          req.user.id, appt.id,
+          c.full_name || null, c.date_of_birth || null, c.address || null,
+          c.phone || null, c.email || null, c.referred_by || null, c.main_goal || null,
+          c.form ? JSON.stringify(c.form) : null, c.signature || null, !!c.agreed,
+        ],
+      );
+    }
+    pushStaff('New appointment request', 'A patient requested a booking.', { appointment_id: appt.id });
+    return res.status(201).json({ appointment: appt });
   } catch (err) {
     next(err);
   }
@@ -103,11 +122,13 @@ router.post('/:id/status', requireAuth, requireRole('doctor', 'manager'), async 
     const allowed = ['pending', 'confirmed', 'completed', 'cancelled'];
     if (!allowed.includes(status)) return res.status(400).json({ message: 'Invalid status' });
     const result = await query(
-      `UPDATE appointments SET status = $1 WHERE id = $2 RETURNING id, status`,
+      `UPDATE appointments SET status = $1 WHERE id = $2 RETURNING id, status, user_id`,
       [status, req.params.id],
     );
     if (result.rowCount === 0) return res.status(404).json({ message: 'Appointment not found' });
-    return res.json({ appointment: result.rows[0] });
+    const appt = result.rows[0];
+    notifyUser(appt.user_id, `Appointment ${status}`, `Your appointment is now ${status}.`, { appointment_id: appt.id });
+    return res.json({ appointment: { id: appt.id, status: appt.status } });
   } catch (err) {
     next(err);
   }

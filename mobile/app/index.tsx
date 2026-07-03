@@ -1,11 +1,12 @@
 import { View, ActivityIndicator } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '../src/auth/AuthContext';
-import { colors } from '../src/theme/colors';
+import { useTheme } from '../src/theme/ThemeContext';
 
 /** Entry route: decide landing screen by auth state + role once the session restores. */
 export default function Index() {
   const { initializing, isAuthenticated, user } = useAuth();
+  const { colors } = useTheme();
 
   if (initializing) {
     return (

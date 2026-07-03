@@ -4,13 +4,17 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Text, Button } from '../../src/components';
-import { colors, gradients } from '../../src/theme/colors';
+import { gradients } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
+import { AppColors } from '../../src/theme/palettes';
 import { spacing, screenPadding } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
 
 export default function Welcome() {
   const { t } = useI18n();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   return (
     <View style={styles.root}>
@@ -64,7 +68,7 @@ export default function Welcome() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: AppColors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   bg: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: screenPadding },

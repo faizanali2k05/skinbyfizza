@@ -2,7 +2,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, Badge, Card, Button, EmptyState } from '../../src/components';
-import { colors } from '../../src/theme/colors';
+import { useTheme } from '../../src/theme/ThemeContext';
 import { spacing } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
 import { useAuth } from '../../src/auth/AuthContext';
@@ -36,6 +36,7 @@ export default function Appointments() {
     [isAuthenticated],
   );
   const items = data ?? [];
+  const { colors } = useTheme();
 
   return (
     <Screen scroll padded refreshing={loading} onRefresh={refetch}>

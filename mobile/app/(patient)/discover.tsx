@@ -4,7 +4,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, SectionHeader, EmptyState } from '../../src/components';
-import { colors } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
+import { AppColors } from '../../src/theme/palettes';
 import { radius, spacing, screenPadding } from '../../src/theme/spacing';
 import { fonts } from '../../src/theme/typography';
 import { useI18n } from '../../src/i18n';
@@ -19,6 +20,8 @@ export default function Discover() {
   const { user } = useAuth();
   const router = useRouter();
   const { data: procedures, loading, error, refetch } = useQuery(api.getProcedures);
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -138,7 +141,7 @@ export default function Discover() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: AppColors) => StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'flex-start', marginTop: spacing.sm, marginBottom: spacing.lg },
   shopLine: { marginTop: spacing.xs },

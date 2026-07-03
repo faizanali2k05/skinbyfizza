@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import { spacing } from '../theme/spacing';
 
 type Props = {
@@ -11,9 +11,15 @@ type Props = {
 };
 
 export function EmptyState({ icon = 'sparkles-outline', title, subtitle }: Props) {
+  const { colors } = useTheme();
   return (
     <View style={styles.wrap}>
-      <View style={styles.iconWrap}>
+      <View
+        style={[
+          styles.iconWrap,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
         <Ionicons name={icon} size={28} color={colors.gold} />
       </View>
       <Text variant="h3" center style={styles.title}>
@@ -34,9 +40,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,

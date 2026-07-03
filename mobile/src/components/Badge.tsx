@@ -1,18 +1,22 @@
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Text } from './Text';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { AppColors } from '../theme/palettes';
 import { radius } from '../theme/spacing';
 import { fonts } from '../theme/typography';
 
+type Tone = 'gold' | 'rose' | 'sage' | 'neutral' | 'warning';
+
 type Props = {
   label: string;
-  tone?: 'gold' | 'rose' | 'sage' | 'neutral' | 'warning';
+  tone?: Tone;
   style?: ViewStyle;
 };
 
 /** Small status pill — e.g. "VIP", "WhatsApp only", "Confirmed". */
 export function Badge({ label, tone = 'gold', style }: Props) {
-  const t = TONES[tone];
+  const { colors } = useTheme();
+  const t = tones(colors)[tone];
   return (
     <View style={[styles.badge, { backgroundColor: t.bg }, style]}>
       <Text style={[styles.text, { color: t.fg }]}>{label}</Text>
@@ -20,13 +24,13 @@ export function Badge({ label, tone = 'gold', style }: Props) {
   );
 }
 
-const TONES = {
-  gold: { bg: 'rgba(201,162,75,0.16)', fg: colors.goldLight },
-  rose: { bg: 'rgba(228,139,161,0.16)', fg: colors.rose },
-  sage: { bg: 'rgba(111,183,160,0.16)', fg: colors.sage },
-  neutral: { bg: colors.surfaceHigh, fg: colors.textSecondary },
-  warning: { bg: 'rgba(224,160,44,0.16)', fg: colors.warning },
-} as const;
+const tones = (c: AppColors): Record<Tone, { bg: string; fg: string }> => ({
+  gold: { bg: 'rgba(201,162,75,0.16)', fg: c.goldLight },
+  rose: { bg: 'rgba(228,139,161,0.16)', fg: c.rose },
+  sage: { bg: 'rgba(111,183,160,0.16)', fg: c.sage },
+  neutral: { bg: c.surfaceHigh, fg: c.textSecondary },
+  warning: { bg: 'rgba(224,160,44,0.16)', fg: c.warning },
+});
 
 const styles = StyleSheet.create({
   badge: {

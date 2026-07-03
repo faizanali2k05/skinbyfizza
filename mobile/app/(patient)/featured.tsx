@@ -3,7 +3,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, SectionHeader, EmptyState } from '../../src/components';
-import { colors } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
+import { AppColors } from '../../src/theme/palettes';
 import { radius, spacing, screenPadding } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
 import { useQuery } from '../../src/hooks/useQuery';
@@ -16,6 +17,8 @@ export default function Featured() {
   const { data: procedures, loading, refetch } = useQuery(api.getProcedures);
   const list = procedures ?? [];
   const hero = list[0];
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   return (
     <Screen scroll padded refreshing={loading} onRefresh={refetch}>
@@ -77,7 +80,7 @@ export default function Featured() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: AppColors) => StyleSheet.create({
   flex: { flex: 1 },
   titleRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

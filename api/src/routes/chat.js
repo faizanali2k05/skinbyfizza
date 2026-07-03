@@ -3,6 +3,8 @@
 const express = require('express');
 const { query } = require('../db');
 const { requireAuth, requireRole } = require('../auth/middleware');
+const { sendWhatsAppText } = require('../lib/whatsapp');
+const { notifyUser, pushStaff } = require('../lib/notify');
 
 const router = express.Router();
 
@@ -113,7 +115,28 @@ router.post('/send', requireAuth, async (req, res, next) => {
       `UPDATE conversations SET last_message = $2, last_sender_id = $3, updated_at = now() WHERE id = $1`,
       [convId, body, req.user.id],
     );
-    return res.status(201).json({ message: msg });
+
+    // Deliver notifications + WhatsApp outbound (best-effort, after responding).
+    const conv = (
+      await query(
+        `SELECT c.platform, c.user_id, u.phone_e164, u.full_name
+         FROM conversations c JOIN users u ON u.id = c.user_id WHERE c.id = $1`,
+        [convId],
+      )
+    ).rows[0];
+    res.status(201).json({ message: msg });
+    if (conv) {
+      if (req.user.role === 'user') {
+        pushStaff('New message', `${conv.full_name}: ${body}`, { conversation_id: convId });
+      } else {
+        notifyUser(conv.user_id, 'New reply from the clinic', body, { conversation_id: convId });
+        // If this is a WhatsApp lead, deliver the reply to their WhatsApp.
+        if (conv.platform === 'whatsapp' && conv.phone_e164) {
+          sendWhatsAppText(conv.phone_e164, body).catch((e) => console.error('[wa-out]', e.message));
+        }
+      }
+    }
+    return;
   } catch (err) {
     next(err);
   }

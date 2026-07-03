@@ -24,6 +24,7 @@ app.use('/prescriptions', require('./routes/prescriptions'));
 app.use('/chat', require('./routes/chat'));
 app.use('/users', require('./routes/users'));
 app.use('/ai', require('./routes/ai'));
+app.use('/wa', require('./routes/wa'));
 
 // 404
 app.use((_req, res) => res.status(404).json({ message: 'Not found' }));

@@ -7,7 +7,8 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Text } from './Text';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
+import { AppColors } from '../theme/palettes';
 import { radius, spacing } from '../theme/spacing';
 import { fonts } from '../theme/typography';
 
@@ -34,8 +35,9 @@ export function Button({
   icon,
   style,
 }: Props) {
+  const { colors } = useTheme();
   const isDisabled = disabled || loading;
-  const v = VARIANTS[variant];
+  const v = variants(colors)[variant];
 
   return (
     <Pressable
@@ -62,12 +64,12 @@ export function Button({
   );
 }
 
-const VARIANTS: Record<Variant, { bg: string; fg: string; border: string }> = {
-  primary: { bg: colors.gold, fg: colors.textInverse, border: colors.gold },
-  light: { bg: colors.white, fg: colors.textInverse, border: colors.white },
-  outline: { bg: 'transparent', fg: colors.textPrimary, border: colors.border },
-  ghost: { bg: 'transparent', fg: colors.gold, border: 'transparent' },
-};
+const variants = (c: AppColors): Record<Variant, { bg: string; fg: string; border: string }> => ({
+  primary: { bg: c.gold, fg: c.textInverse, border: c.gold },
+  light: { bg: c.white, fg: c.textInverse, border: c.white },
+  outline: { bg: 'transparent', fg: c.textPrimary, border: c.border },
+  ghost: { bg: 'transparent', fg: c.gold, border: 'transparent' },
+});
 
 const styles = StyleSheet.create({
   base: {

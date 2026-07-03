@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from './Text';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import { spacing } from '../theme/spacing';
 import { useI18n } from '../i18n';
 
@@ -12,6 +12,7 @@ type Props = {
 
 export function SectionHeader({ title, onSeeAll, serif = true }: Props) {
   const { t } = useI18n();
+  const { colors } = useTheme();
   return (
     <View style={styles.row}>
       <Text variant={serif ? 'h2' : 'title'}>{title}</Text>

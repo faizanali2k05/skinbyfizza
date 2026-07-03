@@ -1,9 +1,33 @@
 # Skin By Dr. Fizza G — Rebuild Architecture & Plan
 
-> **Rebuild target:** React Native (Expo) app + self-hosted **n8n** as the
-> backend/orchestration layer + **PostgreSQL** as the database. Replaces the
-> previous Flutter + Flask + Supabase stack. This document is the single source
-> of truth for the new build. Update it whenever architecture changes.
+> **Rebuild target:** React Native (Expo) app + **PostgreSQL** database.
+> Replaces the previous Flutter + Flask + Supabase stack.
+
+---
+
+## ⭐ CURRENT LIVE ARCHITECTURE (v2 — authoritative)
+
+The backend was split out of n8n. **n8n now hosts only the AI consultant.**
+
+```
+Expo app ──HTTPS──► Node/Express backend ──► PostgreSQL (skin-postgres)
+   │                (skinapi.seemaai.co.uk)
+   │                        │
+   └────────────────────────┴──► POST /ai/chat ──► n8n AI workflow ──► OpenAI
+```
+
+| Layer | What | Where |
+|---|---|---|
+| **App** | Expo SDK 54, expo-router, dark-luxury UI | `mobile/` → base URL `https://skinapi.seemaai.co.uk` |
+| **Backend** | Node/Express, JWT (HS256) + scrypt, `pg` | `backend/` → Docker `skin-backend` on VPS, `172.17.0.1:8095`, network `n8n_default` |
+| **Database** | Postgres 16, schema in `db/schema.sql` | Docker `skin-postgres` on VPS (`n8n_default`) |
+| **AI** | n8n workflow **skinbyfizza** (webhook `/ai/chat` → OpenAI agent `gpt-5-mini`) | n8n `n8n.seemaai.co.uk`; backend proxies to `http://n8n:5678/webhook/ai/chat` |
+| **Proxy/TLS** | Caddy (`skinapi.seemaai.co.uk` block) | `seema-caddy-1`, `/opt/seema/deploy/Caddyfile` |
+| **DNS** | `skinapi` A → `69.62.110.2` | Hostinger (seemaai.co.uk) |
+
+Backend endpoints + deploy steps: see `backend/README.md`. Everything below
+(sections 0–10) is the original design record; the API contract still holds,
+but auth/data are served by the Node backend, not n8n.
 
 ---
 

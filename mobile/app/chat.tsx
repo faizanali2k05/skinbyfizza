@@ -12,7 +12,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text } from '../src/components';
-import { colors } from '../src/theme/colors';
+import { useTheme, useThemedStyles } from '../src/theme/ThemeContext';
+import { AppColors } from '../src/theme/palettes';
 import { radius, spacing } from '../src/theme/spacing';
 import { fonts } from '../src/theme/typography';
 import { api } from '../src/api/services';
@@ -31,6 +32,8 @@ export default function Chat() {
   ]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const scrollDown = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
 
@@ -125,7 +128,7 @@ export default function Chat() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: AppColors) => StyleSheet.create({
   flex: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

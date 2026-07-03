@@ -164,6 +164,27 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications (user_id, created_at);
 
 -- ─────────────────────────────────────────────────────────────
+-- CONSULTATIONS  (client intake form filled while booking)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS consultations (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  appointment_id uuid REFERENCES appointments(id) ON DELETE SET NULL,
+  full_name      text,
+  date_of_birth  date,
+  address        text,
+  phone          text,
+  email          text,
+  referred_by    text,
+  main_goal      text,
+  form           jsonb,     -- detailed skincare + medical answers
+  signature      text,      -- typed name as e-signature
+  agreed         boolean NOT NULL DEFAULT false,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_consultations_user ON consultations (user_id);
+
+-- ─────────────────────────────────────────────────────────────
 -- CLINIC INFO + LOCATIONS
 -- ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS about_us (

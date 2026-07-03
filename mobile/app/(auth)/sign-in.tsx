@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'rea
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, TextField, Button } from '../../src/components';
-import { colors } from '../../src/theme/colors';
+import { useTheme } from '../../src/theme/ThemeContext';
 import { spacing } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
 import { useAuth } from '../../src/auth/AuthContext';
@@ -13,6 +13,7 @@ export default function SignIn() {
   const { t } = useI18n();
   const router = useRouter();
   const { signIn } = useAuth();
+  const { colors } = useTheme();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -27,8 +28,9 @@ export default function SignIn() {
     setLoading(true);
     setError(null);
     try {
-      await signIn(identifier, password);
-      router.replace('/(patient)/discover');
+      const u = await signIn(identifier, password);
+      const staff = u.role === 'doctor' || u.role === 'manager';
+      router.replace(staff ? '/(staff)/dashboard' : '/(patient)/discover');
     } catch (e) {
       setError(
         e instanceof ApiError ? e.message : 'Sign in failed. Please try again.',

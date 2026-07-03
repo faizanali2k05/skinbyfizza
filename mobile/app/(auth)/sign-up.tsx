@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'rea
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, TextField, Button } from '../../src/components';
-import { colors } from '../../src/theme/colors';
+import { useTheme } from '../../src/theme/ThemeContext';
 import { spacing } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
 import { useAuth } from '../../src/auth/AuthContext';
@@ -13,6 +13,7 @@ export default function SignUp() {
   const { t } = useI18n();
   const router = useRouter();
   const { signUp } = useAuth();
+  const { colors } = useTheme();
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('+92');

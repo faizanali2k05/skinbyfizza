@@ -13,23 +13,26 @@ npx expo start         # press i / a, or scan the QR in Expo Go
 > Node note: install ran on Node 25. If you hit odd native errors, use the
 > Expo-recommended LTS (Node 20/22).
 
-## Point the app at your n8n
+## Point the app at the backend
 
-The API base URL resolves in this order (`src/api/config.ts`):
+The app talks to the **Node backend** (`backend/`), which owns auth + data and
+proxies the AI consultant to n8n. Base URL resolves in this order
+(`src/api/config.ts`):
 
-1. `EXPO_PUBLIC_N8N_BASE_URL` env var
-2. `app.json → expo.extra.n8nBaseUrl`
-3. fallback `https://n8n.example.com/webhook`
+1. `EXPO_PUBLIC_API_BASE_URL` env var
+2. `app.json → expo.extra.apiBaseUrl`
+3. fallback `https://skinapi.seemaai.co.uk`  ← live backend
 
-Set it for local dev:
+Override for local dev:
 
 ```bash
 # .env (not committed)
-EXPO_PUBLIC_N8N_BASE_URL=https://n8n.yourdomain.com/webhook
+EXPO_PUBLIC_API_BASE_URL=https://skinapi.seemaai.co.uk
 ```
 
-All endpoint paths live in `src/api/config.ts → endpoints` and match the n8n
-webhook contract in `docs/ARCHITECTURE.md §4`.
+Endpoint paths live in `src/api/config.ts → endpoints` and map 1:1 to the
+backend routes in `backend/README.md`. AI (`/ai/chat`) is proxied by the
+backend to the n8n **skinbyfizza** workflow.
 
 ## Structure
 

@@ -2,7 +2,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, Card, EmptyState } from '../src/components';
-import { colors } from '../src/theme/colors';
+import { useTheme } from '../src/theme/ThemeContext';
 import { spacing } from '../src/theme/spacing';
 import { useAuth } from '../src/auth/AuthContext';
 import { useQuery } from '../src/hooks/useQuery';
@@ -24,6 +24,7 @@ export default function Prescriptions() {
     [isAuthenticated],
   );
   const items = data ?? [];
+  const { colors } = useTheme();
 
   return (
     <Screen scroll padded edges={['top']} refreshing={loading} onRefresh={refetch}>

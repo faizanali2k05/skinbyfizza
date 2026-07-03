@@ -39,5 +39,16 @@ export function useQuery<T>(fn: () => Promise<T>, deps: unknown[] = []) {
     };
   }, [run]);
 
-  return { ...state, refetch: run };
+  /** Optimistically patch the cached data (revert by calling refetch on error). */
+  const setData = useCallback((updater: T | ((prev: T | null) => T)) => {
+    setState((s) => ({
+      ...s,
+      data:
+        typeof updater === 'function'
+          ? (updater as (prev: T | null) => T)(s.data)
+          : updater,
+    }));
+  }, []);
+
+  return { ...state, refetch: run, setData };
 }

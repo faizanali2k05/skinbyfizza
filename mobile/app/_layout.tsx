@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { useAuth } from '../src/auth/AuthContext';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import {
@@ -19,13 +20,79 @@ import {
 
 import { AuthProvider } from '../src/auth/AuthContext';
 import { I18nProvider } from '../src/i18n';
+import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { usePushToken } from '../src/hooks/usePushToken';
-import { colors } from '../src/theme/colors';
 
 /** Registers the Expo push token once the user is authenticated. */
 function PushRegistrar() {
   usePushToken();
   return null;
+}
+
+/**
+ * Global route guard: keeps patients out of the staff portal and vice-versa,
+ * bounces signed-out users to the welcome screen (so logout always navigates),
+ * and sends freshly signed-in users to their role home.
+ */
+function AuthGate() {
+  const { isAuthenticated, initializing, user } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initializing) return;
+    const group = segments[0];
+    const inAuth = group === '(auth)';
+    const inStaff = group === '(staff)';
+    const inPatient = group === '(patient)';
+    const isStaff = user?.role === 'doctor' || user?.role === 'manager';
+
+    if (!isAuthenticated) {
+      // Staff area is auth-only. The patient area stays open to guests
+      // ("Continue as guest"), so we don't bounce unauthenticated users there.
+      if (inStaff) router.replace('/(auth)/welcome');
+      return;
+    }
+    // signed in
+    if (inAuth) {
+      router.replace(isStaff ? '/(staff)/dashboard' : '/(patient)/discover');
+    } else if (isStaff && inPatient) {
+      router.replace('/(staff)/dashboard'); // admins/managers stay in their portal
+    } else if (!isStaff && inStaff) {
+      router.replace('/(patient)/discover');
+    }
+  }, [isAuthenticated, initializing, segments, user, router]);
+
+  return null;
+}
+
+/** Themed navigator — reads the active palette for the app chrome. */
+function ThemedNavigator() {
+  const { colors } = useTheme();
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+          animation: 'fade',
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(patient)" />
+        <Stack.Screen name="(staff)" />
+        <Stack.Screen name="chat" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="clinic-chat" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="prescriptions" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="procedure/[id]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="book/[id]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="profile-edit" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="about" options={{ animation: 'slide_from_right' }} />
+      </Stack>
+    </GestureHandlerRootView>
+  );
 }
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -43,39 +110,22 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
+    if (fontsLoaded || fontError) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
-      <SafeAreaProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
         <I18nProvider>
           <AuthProvider>
             <PushRegistrar />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.background },
-                animation: 'fade',
-              }}
-            >
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(patient)" />
-              <Stack.Screen name="(staff)" />
-              <Stack.Screen name="chat" options={{ animation: 'slide_from_bottom' }} />
-              <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="prescriptions" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="procedure/[id]" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="book/[id]" options={{ animation: 'slide_from_right' }} />
-            </Stack>
+            <AuthGate />
+            <ThemedNavigator />
           </AuthProvider>
         </I18nProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

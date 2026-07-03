@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import { screenPadding } from '../theme/spacing';
 
 type Props = {
@@ -22,7 +22,7 @@ type Props = {
   onRefresh?: () => void;
 };
 
-/** Standard dark screen wrapper with safe-area + optional scroll/refresh. */
+/** Standard themed screen wrapper with safe-area + optional scroll/refresh. */
 export function Screen({
   children,
   scroll = false,
@@ -33,14 +33,15 @@ export function Screen({
   refreshing,
   onRefresh,
 }: Props) {
+  const { colors, isDark } = useTheme();
   const inner: ViewStyle[] = [
-    padded ? styles.padded : styles.flush,
+    padded ? { paddingHorizontal: screenPadding } : {},
     contentStyle ?? {},
   ];
 
   return (
-    <SafeAreaView style={[styles.root, style]} edges={edges}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }, style]} edges={edges}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       {scroll ? (
         <ScrollView
           style={styles.flex}
@@ -67,9 +68,7 @@ export function Screen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: { flex: 1 },
   flex: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: 32 },
-  padded: { paddingHorizontal: screenPadding },
-  flush: {},
 });

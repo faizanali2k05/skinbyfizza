@@ -1,5 +1,5 @@
 {
-  "name": "skinbyfizza-backend",
+  "name": "skinbyfizza-api",
   "version": "1.0.0",
   "private": true,
   "description": "Backend API for the Skin By Dr. Fizza G app (auth, catalogue, appointments, chat, notifications). AI consultant is delegated to n8n.",
