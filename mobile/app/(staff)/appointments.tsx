@@ -30,7 +30,7 @@ function fmt(dt: string) {
 
 export default function StaffAppointments() {
   const router = useRouter();
-  const { data, loading, refetch, setData } = useQuery(() => api.getAppointments());
+  const { data, loading, refetch, setData } = useQuery(() => api.getAppointments(), [], { refetchOnFocus: true });
   const items = data ?? [];
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);

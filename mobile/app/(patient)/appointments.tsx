@@ -34,6 +34,7 @@ export default function Appointments() {
   const { data, loading, error, refetch } = useQuery(
     () => (isAuthenticated ? api.getAppointments() : Promise.resolve([])),
     [isAuthenticated],
+    { refetchOnFocus: true },
   );
   const items = data ?? [];
   const { colors } = useTheme();
@@ -80,7 +81,7 @@ export default function Appointments() {
       <Button
         title="Book a treatment"
         style={styles.book}
-        onPress={() => router.push('/(patient)/categories')}
+        onPress={() => router.push(isAuthenticated ? '/book/new' : '/(auth)/sign-in')}
       />
     </Screen>
   );

@@ -9,7 +9,7 @@ import { api } from '../../src/api/services';
 
 export default function StaffProcedures() {
   const router = useRouter();
-  const { data, loading, refetch, setData } = useQuery(api.getProcedures);
+  const { data, loading, refetch, setData } = useQuery(api.getProcedures, [], { refetchOnFocus: true });
   const procedures = data ?? [];
   const { colors } = useTheme();
 

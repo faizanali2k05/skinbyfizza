@@ -37,7 +37,10 @@ export default function BookScreen() {
   const styles = useThemedStyles(makeStyles);
   const { user } = useAuth();
   const { data } = useQuery(api.getProcedures);
-  const procedure = (data ?? []).find((p) => p.id === id);
+  const procedures = data ?? [];
+  const preselected = id && id !== 'new' ? id : undefined;
+  const [procId, setProcId] = useState<string | undefined>(preselected);
+  const procedure = procedures.find((p) => p.id === procId);
 
   const days = useMemo(() => nextDays(7), []);
   const [step, setStep] = useState(0);
@@ -59,6 +62,7 @@ export default function BookScreen() {
     setConcerns((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
 
   const next = () => {
+    if (step === 0 && !procId) return Alert.alert('Please select a treatment first');
     if (step === 0 && !f.name?.trim()) return Alert.alert('Please enter your name');
     if (step === 2 && !agreed) return Alert.alert('Please accept the consent to continue');
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -72,7 +76,7 @@ export default function BookScreen() {
     setSubmitting(true);
     try {
       await api.bookAppointment({
-        procedure_id: id!,
+        procedure_id: procId,
         scheduled_at: when.toISOString(),
         city,
         consultation: {
@@ -124,11 +128,25 @@ export default function BookScreen() {
         ))}
       </View>
 
-      <Text variant="caption" style={styles.treatment}>Treatment · {procedure?.title ?? '—'}</Text>
+      {procedure ? (
+        <Text variant="caption" style={styles.treatment}>Treatment · {procedure.title}</Text>
+      ) : null}
 
       {/* STEP 0 — personal */}
       {step === 0 && (
         <View>
+          {!preselected && (
+            <>
+              <Text variant="overline" style={styles.pickLabel}>Select a treatment</Text>
+              <View style={styles.chips}>
+                {procedures.map((p) => (
+                  <Pressable key={p.id} onPress={() => setProcId(p.id)} style={[styles.chip, procId === p.id && styles.activeCard]}>
+                    <Text style={[styles.chipText, procId === p.id && styles.activeText]}>{p.title}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
           <TextField label="Full name" value={f.name} onChangeText={set('name')} />
           <TextField label="Date of birth" value={f.dob} onChangeText={set('dob')} placeholder="YYYY-MM-DD" />
           <TextField label="Address" value={f.address} onChangeText={set('address')} />
@@ -254,6 +272,7 @@ const makeStyles = (c: AppColors) =>
     progress: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.lg },
     progressBar: { flex: 1, height: 4, borderRadius: 2 },
     treatment: { marginBottom: spacing.lg },
+    pickLabel: { marginBottom: spacing.md },
     note: { marginBottom: spacing.lg },
     section: { marginTop: spacing.lg, marginBottom: spacing.md },
     consent: { marginTop: spacing.lg, marginBottom: spacing.md },

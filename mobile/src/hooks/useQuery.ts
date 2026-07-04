@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 
 type State<T> = {
   data: T | null;
@@ -6,12 +7,16 @@ type State<T> = {
   error: string | null;
 };
 
+type Options = {
+  /** Re-fetch every time the screen regains focus (keeps staff data in sync). */
+  refetchOnFocus?: boolean;
+};
+
 /**
  * Minimal data-fetching hook: runs `fn` on mount (and when `deps` change),
- * exposes { data, loading, error, refetch }. No caching — good enough for
- * the app's screens that read from n8n.
+ * exposes { data, loading, error, refetch, setData }.
  */
-export function useQuery<T>(fn: () => Promise<T>, deps: unknown[] = []) {
+export function useQuery<T>(fn: () => Promise<T>, deps: unknown[] = [], opts: Options = {}) {
   const [state, setState] = useState<State<T>>({
     data: null,
     loading: true,
@@ -38,6 +43,19 @@ export function useQuery<T>(fn: () => Promise<T>, deps: unknown[] = []) {
       mounted.current = false;
     };
   }, [run]);
+
+  // Refresh on focus (skip the very first focus — mount already fetched).
+  const firstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (!opts.refetchOnFocus) return;
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
+      run();
+    }, [run, opts.refetchOnFocus]),
+  );
 
   /** Optimistically patch the cached data (revert by calling refetch on error). */
   const setData = useCallback((updater: T | ((prev: T | null) => T)) => {

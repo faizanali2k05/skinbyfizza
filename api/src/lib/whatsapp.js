@@ -32,4 +32,30 @@ async function sendWhatsAppText(to, body) {
   }
 }
 
-module.exports = { sendWhatsAppText };
+/** Send an image (by public link) with an optional caption. */
+async function sendWhatsAppImage(to, link, caption) {
+  if (!config.whatsappToken || !config.whatsappPhoneId) return;
+  const phone = String(to).replace(/\D/g, '');
+  const res = await fetch(
+    `https://graph.facebook.com/v21.0/${config.whatsappPhoneId}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.whatsappToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: phone,
+        type: 'image',
+        image: { link, caption: caption ? String(caption).slice(0, 1024) : undefined },
+      }),
+    },
+  );
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`WhatsApp image failed (${res.status}): ${t.slice(0, 200)}`);
+  }
+}
+
+module.exports = { sendWhatsAppText, sendWhatsAppImage };

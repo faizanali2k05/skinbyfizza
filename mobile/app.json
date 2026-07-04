@@ -37,6 +37,12 @@
           "color": "#C9A24B"
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow the clinic app to attach photos to chats."
+        }
+      ],
       "expo-splash-screen"
     ],
     "experiments": {

@@ -1,9 +1,13 @@
 'use strict';
 
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const { query } = require('../db');
+const config = require('../config');
 const { requireAuth, requireRole } = require('../auth/middleware');
-const { sendWhatsAppText } = require('../lib/whatsapp');
+const { sendWhatsAppText, sendWhatsAppImage } = require('../lib/whatsapp');
 const { notifyUser, pushStaff } = require('../lib/notify');
 
 const router = express.Router();
@@ -85,7 +89,20 @@ router.post('/send', requireAuth, async (req, res, next) => {
   try {
     const b = req.body || {};
     const body = String(b.body || '').trim();
-    if (!body) return res.status(400).json({ message: 'Message is empty' });
+
+    // Optional image attachment (base64) — saved and served publicly so it can
+    // also be forwarded to WhatsApp as an image link.
+    let mediaUrl = null;
+    let msgType = 'text';
+    if (b.media_base64) {
+      const ext = String(b.media_mime || '').includes('png') ? 'png' : 'jpg';
+      const fname = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;
+      const buf = Buffer.from(String(b.media_base64).replace(/^data:[^,]+,/, ''), 'base64');
+      fs.writeFileSync(path.join(config.uploadsDir, fname), buf);
+      mediaUrl = `${config.publicBase}/uploads/${fname}`;
+      msgType = 'image';
+    }
+    if (!body && !mediaUrl) return res.status(400).json({ message: 'Message is empty' });
 
     let convId = b.conversation_id;
     if (req.user.role === 'user') {
@@ -103,17 +120,18 @@ router.post('/send', requireAuth, async (req, res, next) => {
 
     const msg = (
       await query(
-        `INSERT INTO messages (conversation_id, sender_id, body, type)
-         VALUES ($1,$2,$3,'text')
-         RETURNING id, conversation_id, sender_id, body, type, created_at`,
-        [convId, req.user.id, body],
+        `INSERT INTO messages (conversation_id, sender_id, body, type, media_url)
+         VALUES ($1,$2,$3,$4,$5)
+         RETURNING id, conversation_id, sender_id, body, type, media_url, created_at`,
+        [convId, req.user.id, body, msgType, mediaUrl],
       )
     ).rows[0];
 
     // Bump the conversation summary.
+    const summary = body || (mediaUrl ? '📷 Photo' : '');
     await query(
       `UPDATE conversations SET last_message = $2, last_sender_id = $3, updated_at = now() WHERE id = $1`,
-      [convId, body, req.user.id],
+      [convId, summary, req.user.id],
     );
 
     // Deliver notifications + WhatsApp outbound (best-effort, after responding).
@@ -129,10 +147,14 @@ router.post('/send', requireAuth, async (req, res, next) => {
       if (req.user.role === 'user') {
         pushStaff('New message', `${conv.full_name}: ${body}`, { conversation_id: convId });
       } else {
-        notifyUser(conv.user_id, 'New reply from the clinic', body, { conversation_id: convId });
+        notifyUser(conv.user_id, 'New reply from the clinic', summary, { conversation_id: convId });
         // If this is a WhatsApp lead, deliver the reply to their WhatsApp.
         if (conv.platform === 'whatsapp' && conv.phone_e164) {
-          sendWhatsAppText(conv.phone_e164, body).catch((e) => console.error('[wa-out]', e.message));
+          if (mediaUrl) {
+            sendWhatsAppImage(conv.phone_e164, mediaUrl, body).catch((e) => console.error('[wa-out]', e.message));
+          } else {
+            sendWhatsAppText(conv.phone_e164, body).catch((e) => console.error('[wa-out]', e.message));
+          }
         }
       }
     }

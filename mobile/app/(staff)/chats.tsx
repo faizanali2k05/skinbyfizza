@@ -14,7 +14,7 @@ export default function StaffChats() {
   const router = useRouter();
   const { user } = useAuth();
   const isManager = user?.role === 'manager';
-  const { data, loading, refetch } = useQuery(api.getThreads);
+  const { data, loading, refetch } = useQuery(api.getThreads, [], { refetchOnFocus: true });
   const threads = data ?? [];
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -48,7 +48,7 @@ export default function StaffChats() {
             key={t.id}
             style={styles.card}
             onPress={() =>
-              router.push({ pathname: '/(staff)/chat/[id]', params: { id: t.id, name: t.full_name } })
+              router.push({ pathname: '/(staff)/chat/[id]', params: { id: t.id, name: t.full_name, platform: t.platform } })
             }
             padded
           >

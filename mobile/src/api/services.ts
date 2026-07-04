@@ -77,10 +77,19 @@ export const api = {
       query: { conversation_id: conversationId, since },
     }).then((r) => r.messages ?? []),
 
-  sendMessage: (body: string, conversationId?: string) =>
+  sendMessage: (
+    body: string,
+    conversationId?: string,
+    media?: { base64: string; mime: string },
+  ) =>
     apiRequest<{ message: Message }>(endpoints.chatSend, {
       method: 'POST',
-      body: { conversation_id: conversationId, body },
+      body: {
+        conversation_id: conversationId,
+        body,
+        media_base64: media?.base64,
+        media_mime: media?.mime,
+      },
     }).then((r) => r.message),
 
   setPrimary: (conversationId: string) =>

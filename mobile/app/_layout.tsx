@@ -83,7 +83,6 @@ function ThemedNavigator() {
         <Stack.Screen name="(patient)" />
         <Stack.Screen name="(staff)" />
         <Stack.Screen name="chat" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="clinic-chat" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="prescriptions" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="procedure/[id]" options={{ animation: 'slide_from_right' }} />

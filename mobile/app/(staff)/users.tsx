@@ -17,7 +17,7 @@ export default function StaffUsers() {
   const { user } = useAuth();
   const isDoctor = user?.role === 'doctor';
   const [q, setQ] = useState('');
-  const { data, loading, refetch, setData } = useQuery(() => api.getUsers(q.trim() || undefined), [q]);
+  const { data, loading, refetch, setData } = useQuery(() => api.getUsers(q.trim() || undefined), [q], { refetchOnFocus: true });
   const users = data ?? [];
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);

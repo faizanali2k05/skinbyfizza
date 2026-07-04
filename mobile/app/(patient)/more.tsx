@@ -31,7 +31,6 @@ export default function More() {
 
   const rows: Row[] = [
     { icon: 'sparkles-outline', title: 'AI Skin Consultant', sub: 'Chat about treatments & routines', onPress: () => router.push('/chat') },
-    { icon: 'chatbubbles-outline', title: 'Message the clinic', sub: 'Chat with the clinic team', onPress: () => router.push('/clinic-chat') },
     { icon: 'notifications-outline', title: t('more.notifications'), sub: t('more.notificationsSub'), onPress: () => router.push('/notifications') },
     { icon: 'calendar-outline', title: t('more.myAppointments'), sub: t('more.myAppointmentsSub'), onPress: () => router.push('/(patient)/appointments') },
     { icon: 'medkit-outline', title: t('more.prescriptions'), sub: t('more.prescriptionsSub'), onPress: () => router.push('/prescriptions') },

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { Text } from './Text';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { AppColors } from '../theme/palettes';
@@ -94,6 +97,39 @@ export function ChatThread({ conversationId, onConversationCreated, emptyHint }:
     }
   };
 
+  const attach = async () => {
+    if (sending) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return Alert.alert('Photo permission needed to attach images');
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.6,
+      base64: true,
+    });
+    const asset = res.canceled ? null : res.assets?.[0];
+    if (!asset?.base64) return;
+    const caption = input.trim();
+    setSending(true);
+    try {
+      const msg = await api.sendMessage(caption, convId, {
+        base64: asset.base64,
+        mime: asset.mimeType || 'image/jpeg',
+      });
+      setMessages((prev) => [...prev, msg]);
+      sinceRef.current = msg.created_at;
+      setInput('');
+      if (!convId && msg.conversation_id) {
+        setConvId(msg.conversation_id);
+        onConversationCreated?.(msg.conversation_id);
+      }
+      scrollDown();
+    } catch {
+      Alert.alert('Could not send the image');
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -118,9 +154,14 @@ export function ChatThread({ conversationId, onConversationCreated, emptyHint }:
               const mine = m.sender_id === user?.id;
               return (
                 <View key={m.id} style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
-                  <Text variant="body" color={mine ? colors.textInverse : colors.textPrimary}>
-                    {m.body}
-                  </Text>
+                  {m.type === 'image' && m.media_url ? (
+                    <Image source={m.media_url} style={styles.image} contentFit="cover" />
+                  ) : null}
+                  {m.body ? (
+                    <Text variant="body" color={mine ? colors.textInverse : colors.textPrimary}>
+                      {m.body}
+                    </Text>
+                  ) : null}
                 </View>
               );
             })
@@ -129,6 +170,9 @@ export function ChatThread({ conversationId, onConversationCreated, emptyHint }:
       )}
 
       <View style={styles.inputBar}>
+        <Pressable style={styles.attachBtn} onPress={attach} hitSlop={8} disabled={sending}>
+          <Ionicons name="add-circle-outline" size={26} color={colors.textSecondary} />
+        </Pressable>
         <TextInput
           style={styles.input}
           placeholder="Type a message…"
@@ -172,4 +216,6 @@ const makeStyles = (c: AppColors) =>
     },
     sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.gold, alignItems: 'center', justifyContent: 'center' },
     disabled: { opacity: 0.4 },
+    image: { width: 200, height: 200, borderRadius: radius.md, marginBottom: 4 },
+    attachBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   });

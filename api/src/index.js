@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const config = require('./config');
@@ -8,7 +9,15 @@ const { pool } = require('./db');
 const app = express();
 
 app.use(cors()); // public API guarded by JWT; allow app + web origins
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '12mb' })); // room for base64 chat images
+
+// Chat media: ensure the folder exists and serve it publicly.
+try {
+  fs.mkdirSync(config.uploadsDir, { recursive: true });
+} catch {
+  /* ignore */
+}
+app.use('/uploads', express.static(config.uploadsDir, { maxAge: '30d' }));
 
 // Health probe (used by uptime checks / Caddy).
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'skinbyfizza-backend' }));

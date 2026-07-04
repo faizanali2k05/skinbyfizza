@@ -7,10 +7,11 @@ import { AppColors } from '../../../src/theme/palettes';
 import { spacing } from '../../../src/theme/spacing';
 
 export default function StaffChatThread() {
-  const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+  const { id, name, platform } = useLocalSearchParams<{ id: string; name?: string; platform?: string }>();
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const isWa = platform === 'whatsapp';
 
   return (
     <Screen padded={false} edges={['top']}>
@@ -18,7 +19,15 @@ export default function StaffChatThread() {
         <Pressable onPress={() => router.back()} hitSlop={10}>
           <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
         </Pressable>
-        <Text variant="h3">{name ?? 'Conversation'}</Text>
+        <View style={styles.center}>
+          <Text variant="h3">{name ?? 'Conversation'}</Text>
+          {isWa ? (
+            <View style={styles.waRow}>
+              <Ionicons name="logo-whatsapp" size={12} color={colors.sage} />
+              <Text variant="caption" color={colors.sage}>replies go to WhatsApp</Text>
+            </View>
+          ) : null}
+        </View>
         <View style={{ width: 24 }} />
       </View>
       <ChatThread conversationId={id} emptyHint="No messages in this thread yet." />
@@ -32,4 +41,6 @@ const makeStyles = (colors: AppColors) => StyleSheet.create({
     paddingHorizontal: spacing.xl, paddingVertical: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider,
   },
+  center: { alignItems: 'center', gap: 2 },
+  waRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

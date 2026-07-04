@@ -27,4 +27,8 @@ module.exports = {
   // WhatsApp Cloud API — for outbound replies from staff to a WhatsApp lead.
   whatsappToken: process.env.WHATSAPP_TOKEN || '',
   whatsappPhoneId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
+
+  // Chat media uploads (served at /uploads and used as WhatsApp image links).
+  uploadsDir: process.env.UPLOADS_DIR || '/app/uploads',
+  publicBase: process.env.PUBLIC_BASE_URL || 'https://skinapi.seemaai.co.uk',
 };
