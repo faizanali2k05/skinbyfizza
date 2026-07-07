@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 import { screenPadding } from '../theme/spacing';
 
@@ -22,7 +23,7 @@ type Props = {
   onRefresh?: () => void;
 };
 
-/** Standard themed screen wrapper with safe-area + optional scroll/refresh. */
+/** Themed screen with a soft depth gradient background + safe-area handling. */
 export function Screen({
   children,
   scroll = false,
@@ -40,35 +41,43 @@ export function Screen({
   ];
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }, style]} edges={edges}>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      {scroll ? (
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={[styles.scrollContent, ...inner]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl
-                refreshing={!!refreshing}
-                onRefresh={onRefresh}
-                tintColor={colors.gold}
-              />
-            ) : undefined
-          }
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={[styles.flex, ...inner]}>{children}</View>
-      )}
-    </SafeAreaView>
+    <View style={[styles.root, { backgroundColor: colors.background }, style]}>
+      <LinearGradient
+        colors={[colors.backgroundElevated, colors.background, colors.background]}
+        locations={[0, 0.4, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      <SafeAreaView style={styles.flex} edges={edges}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        {scroll ? (
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={[styles.scrollContent, ...inner]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl
+                  refreshing={!!refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={colors.gold}
+                />
+              ) : undefined
+            }
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={[styles.flex, ...inner]}>{children}</View>
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: 32 },
+  scrollContent: { flexGrow: 1, paddingBottom: 40 },
 });

@@ -16,7 +16,7 @@
     "android": {
       "package": "com.skinbyfizza.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0B0B0D",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
@@ -43,7 +43,15 @@
           "photosPermission": "Allow the clinic app to attach photos to chats."
         }
       ],
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 280,
+          "resizeMode": "contain",
+          "backgroundColor": "#0A0A0C"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false

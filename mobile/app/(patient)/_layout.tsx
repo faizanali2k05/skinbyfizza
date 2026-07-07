@@ -1,13 +1,14 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../src/theme/typography';
 import { useTheme } from '../../src/theme/ThemeContext';
 
-/** Ounass-style minimal bottom nav: small icons + short labels, safe-area aware. */
+/** Premium glass bottom nav: frosted blur + fine top border, safe-area aware. */
 export default function PatientTabsLayout() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -16,13 +17,21 @@ export default function PatientTabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.gold,
         tabBarInactiveTintColor: colors.textMuted,
+        tabBarBackground: () => (
+          <BlurView
+            intensity={40}
+            tint={isDark ? 'dark' : 'light'}
+            style={[StyleSheet.absoluteFill, { backgroundColor: colors.glassTint }]}
+          />
+        ),
         tabBarStyle: {
-          backgroundColor: colors.backgroundElevated,
-          borderTopColor: colors.divider,
+          backgroundColor: 'transparent',
+          borderTopColor: colors.glassBorder,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 56 + insets.bottom,
+          height: 58 + insets.bottom,
           paddingTop: 8,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+          elevation: 0,
         },
         tabBarLabelStyle: {
           fontFamily: fonts.medium,
@@ -37,8 +46,8 @@ export default function PatientTabsLayout() {
       <Tabs.Screen
         name="discover"
         options={{
-          title: 'Discover',
-          tabBarIcon: ({ color }) => <Ionicons name="compass-outline" size={22} color={color} />,
+          title: 'Home',
+          tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={21} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -46,13 +55,6 @@ export default function PatientTabsLayout() {
         options={{
           title: 'Treatments',
           tabBarIcon: ({ color }) => <Ionicons name="grid-outline" size={20} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="featured"
-        options={{
-          title: 'Featured',
-          tabBarIcon: ({ color }) => <Ionicons name="star-outline" size={20} color={color} />,
         }}
       />
       <Tabs.Screen

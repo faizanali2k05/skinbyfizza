@@ -7,3 +7,5 @@ export { Badge } from './Badge';
 export { SectionHeader } from './SectionHeader';
 export { EmptyState } from './EmptyState';
 export { ChatThread } from './ChatThread';
+export { ProcedureSheetProvider, useProcedureSheet } from './ProcedureSheet';
+export { Logo } from './Logo';

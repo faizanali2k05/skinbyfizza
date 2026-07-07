@@ -53,18 +53,21 @@ export default function StaffProcedures() {
         <EmptyState icon="sparkles-outline" title="No treatments yet" subtitle="Add your first treatment above." />
       ) : (
         procedures.map((p) => (
-          <Card key={p.id} style={styles.card} padded>
+          <Card
+            key={p.id}
+            style={styles.card}
+            padded
+            onPress={() => router.push({ pathname: '/(staff)/procedure-form', params: { id: p.id } })}
+          >
             <View style={styles.row}>
               <View style={styles.flex}>
                 <Text variant="title">{p.title}</Text>
                 <Text variant="caption">{p.category}{p.duration ? ` · ${p.duration}` : ''}</Text>
+                {p.description ? (
+                  <Text variant="bodySmall" numberOfLines={2} style={styles.desc}>{p.description}</Text>
+                ) : null}
               </View>
-              <Pressable
-                hitSlop={8}
-                onPress={() => router.push({ pathname: '/(staff)/procedure-form', params: { id: p.id } })}
-              >
-                <Ionicons name="create-outline" size={20} color={colors.textSecondary} />
-              </Pressable>
+              <Ionicons name="create-outline" size={18} color={colors.textMuted} />
               <Pressable hitSlop={8} onPress={() => remove(p.id, p.title)} style={styles.del}>
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               </Pressable>
@@ -85,5 +88,6 @@ const styles = StyleSheet.create({
   card: { marginBottom: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   flex: { flex: 1 },
+  desc: { marginTop: spacing.sm },
   del: { marginLeft: spacing.sm },
 });

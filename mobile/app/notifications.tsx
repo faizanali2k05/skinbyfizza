@@ -11,12 +11,19 @@ import { api } from '../src/api/services';
 export default function Notifications() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { data, loading, error, refetch } = useQuery(
+  const { data, loading, error, refetch, setData } = useQuery(
     () => (isAuthenticated ? api.getNotifications() : Promise.resolve([])),
     [isAuthenticated],
+    { refetchOnFocus: true },
   );
   const items = data ?? [];
   const { colors } = useTheme();
+
+  // Tap = mark as read (optimistic; server call is fire-and-forget).
+  const markRead = (id: string) => {
+    setData((list) => (list ?? []).map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    api.markNotificationRead(id).catch(() => {});
+  };
 
   return (
     <Screen scroll padded edges={['top']} refreshing={loading} onRefresh={refetch}>
@@ -38,7 +45,7 @@ export default function Notifications() {
         <EmptyState icon="notifications-outline" title="You're all caught up" subtitle="New updates will appear here." />
       ) : (
         items.map((n) => (
-          <Card key={n.id} style={styles.card} padded>
+          <Card key={n.id} style={styles.card} padded onPress={() => markRead(n.id)}>
             <View style={styles.row}>
               <View style={[styles.dot, { backgroundColor: n.is_read ? colors.textMuted : colors.gold }]} />
               <View style={styles.flex}>

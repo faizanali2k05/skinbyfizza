@@ -3,9 +3,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Text, Button } from '../../src/components';
+import { Text, Button, Logo } from '../../src/components';
 import { gradients } from '../../src/theme/colors';
-import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
+import { useThemedStyles } from '../../src/theme/ThemeContext';
 import { AppColors } from '../../src/theme/palettes';
 import { spacing, screenPadding } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
@@ -13,7 +13,6 @@ import { useI18n } from '../../src/i18n';
 export default function Welcome() {
   const { t } = useI18n();
   const router = useRouter();
-  const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
 
   return (
@@ -32,15 +31,10 @@ export default function Welcome() {
         />
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
           <View style={styles.top}>
-            <Text variant="overline" color={colors.goldLight}>
-              Skin By Dr. Fizza G
-            </Text>
+            <Logo light />
           </View>
 
           <View style={styles.bottom}>
-            <Text variant="display" style={styles.title}>
-              {t('auth.welcomeTitle')}
-            </Text>
             <Text variant="body" style={styles.subtitle}>
               {t('auth.welcomeSubtitle')}
             </Text>

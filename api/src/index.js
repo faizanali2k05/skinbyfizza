@@ -34,6 +34,8 @@ app.use('/chat', require('./routes/chat'));
 app.use('/users', require('./routes/users'));
 app.use('/ai', require('./routes/ai'));
 app.use('/wa', require('./routes/wa'));
+app.use('/about', require('./routes/about'));
+app.use('/instructions', require('./routes/instructions'));
 
 // 404
 app.use((_req, res) => res.status(404).json({ message: 'Not found' }));

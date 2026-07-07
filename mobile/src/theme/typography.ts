@@ -7,15 +7,17 @@ import { colors } from './colors';
  * Body/UI = Poppins.
  */
 export const fonts = {
-  displayRegular: 'PlayfairDisplay_400Regular',
-  displayMedium: 'PlayfairDisplay_500Medium',
-  displaySemiBold: 'PlayfairDisplay_600SemiBold',
-  displayBold: 'PlayfairDisplay_700Bold',
+  // Display / headings — Outfit (premium geometric, Garet-like)
+  displayRegular: 'Outfit_400Regular',
+  displayMedium: 'Outfit_500Medium',
+  displaySemiBold: 'Outfit_600SemiBold',
+  displayBold: 'Outfit_700Bold',
 
-  regular: 'Poppins_400Regular',
-  medium: 'Poppins_500Medium',
-  semiBold: 'Poppins_600SemiBold',
-  bold: 'Poppins_700Bold',
+  // Body / UI — Plus Jakarta Sans (modern SaaS)
+  regular: 'PlusJakartaSans_400Regular',
+  medium: 'PlusJakartaSans_500Medium',
+  semiBold: 'PlusJakartaSans_600SemiBold',
+  bold: 'PlusJakartaSans_700Bold',
 } as const;
 
 type Variant =
@@ -31,29 +33,33 @@ type Variant =
   | 'overline';
 
 export const typography: Record<Variant, TextStyle> = {
-  // Big serif hero ("Good morning, Dmitry!", "Exclusive: Jimmy Choo")
+  // Premium geometric display (Outfit) with tight tracking
   display: {
-    fontFamily: fonts.displayMedium,
-    fontSize: 30,
+    fontFamily: fonts.displayBold,
+    fontSize: 32,
     lineHeight: 38,
+    letterSpacing: -0.8,
     color: colors.textPrimary,
   },
   h1: {
-    fontFamily: fonts.displayMedium,
-    fontSize: 26,
-    lineHeight: 34,
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 27,
+    lineHeight: 33,
+    letterSpacing: -0.6,
     color: colors.textPrimary,
   },
   h2: {
-    fontFamily: fonts.displayMedium,
+    fontFamily: fonts.displaySemiBold,
     fontSize: 22,
-    lineHeight: 29,
+    lineHeight: 28,
+    letterSpacing: -0.4,
     color: colors.textPrimary,
   },
   h3: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.displaySemiBold,
     fontSize: 18,
     lineHeight: 24,
+    letterSpacing: -0.2,
     color: colors.textPrimary,
   },
   title: {

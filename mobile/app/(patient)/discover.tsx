@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, SectionHeader, EmptyState } from '../../src/components';
+import { Screen, Text, SectionHeader, EmptyState, useProcedureSheet } from '../../src/components';
 import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
 import { AppColors } from '../../src/theme/palettes';
 import { radius, spacing, screenPadding } from '../../src/theme/spacing';
@@ -22,6 +22,7 @@ export default function Discover() {
   const { data: procedures, loading, error, refetch } = useQuery(api.getProcedures);
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { open } = useProcedureSheet();
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -35,8 +36,7 @@ export default function Discover() {
   const mostWanted = list.slice(0, 2);
   const trending = list.slice(2);
 
-  const openProcedure = (p: Procedure) =>
-    router.push({ pathname: '/(patient)/procedure/[id]', params: { id: p.id } });
+  const openProcedure = (p: Procedure) => open(p);
 
   return (
     <Screen scroll padded refreshing={loading} onRefresh={refetch}>

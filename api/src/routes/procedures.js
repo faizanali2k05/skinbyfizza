@@ -20,7 +20,7 @@ router.get('/', async (_req, res, next) => {
 });
 
 /** POST /procedures — create (doctor only). No price field per requirements. */
-router.post('/', requireAuth, requireRole('doctor'), async (req, res, next) => {
+router.post('/', requireAuth, requireRole('doctor', 'manager'), async (req, res, next) => {
   try {
     const b = req.body || {};
     if (!b.title) return res.status(400).json({ message: 'Title is required' });
@@ -46,7 +46,7 @@ router.post('/', requireAuth, requireRole('doctor'), async (req, res, next) => {
 });
 
 /** PUT /procedures/:id — update (doctor only). */
-router.put('/:id', requireAuth, requireRole('doctor'), async (req, res, next) => {
+router.put('/:id', requireAuth, requireRole('doctor', 'manager'), async (req, res, next) => {
   try {
     const b = req.body || {};
     const fields = [];
@@ -72,7 +72,7 @@ router.put('/:id', requireAuth, requireRole('doctor'), async (req, res, next) =>
 });
 
 /** DELETE /procedures/:id — delete (doctor only). */
-router.delete('/:id', requireAuth, requireRole('doctor'), async (req, res, next) => {
+router.delete('/:id', requireAuth, requireRole('doctor', 'manager'), async (req, res, next) => {
   try {
     const result = await query('DELETE FROM procedures WHERE id = $1', [req.params.id]);
     return res.json({ ok: result.rowCount > 0 });

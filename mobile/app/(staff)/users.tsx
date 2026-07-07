@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, Card, Badge, EmptyState } from '../../src/components';
+import { Screen, Text, Card, Badge, EmptyState, TextField, Button } from '../../src/components';
 import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
 import { AppColors } from '../../src/theme/palettes';
 import { radius, spacing } from '../../src/theme/spacing';
@@ -17,6 +17,7 @@ export default function StaffUsers() {
   const { user } = useAuth();
   const isDoctor = user?.role === 'doctor';
   const [q, setQ] = useState('');
+  const [registering, setRegistering] = useState<User | null>(null);
   const { data, loading, refetch, setData } = useQuery(() => api.getUsers(q.trim() || undefined), [q], { refetchOnFocus: true });
   const users = data ?? [];
   const { colors } = useTheme();
@@ -58,9 +59,73 @@ export default function StaffUsers() {
       ) : users.length === 0 ? (
         <EmptyState icon="people-outline" title="No users found" />
       ) : (
-        users.map((u) => <UserCard key={u.id} u={u} isDoctor={isDoctor} run={run} />)
+        users.map((u) => (
+          <UserCard key={u.id} u={u} isDoctor={isDoctor} run={run} onRegister={() => setRegistering(u)} />
+        ))
       )}
+
+      <RegisterLeadModal
+        target={registering}
+        onClose={() => setRegistering(null)}
+        onDone={(updated) => {
+          setData((list) => (list ?? []).map((x) => (x.id === updated.id ? updated : x)));
+          setRegistering(null);
+        }}
+      />
     </Screen>
+  );
+}
+
+/** Give a WhatsApp lead a real login (email + password) — staff action. */
+function RegisterLeadModal({
+  target,
+  onClose,
+  onDone,
+}: {
+  target: User | null;
+  onClose: () => void;
+  onDone: (u: User) => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    if (!email.trim() || password.length < 6) {
+      return Alert.alert('Enter an email and a password of at least 6 characters');
+    }
+    setSaving(true);
+    try {
+      const res = await api.registerUser(target!.id, email.trim(), password);
+      onDone(res.user);
+      setEmail('');
+      setPassword('');
+    } catch {
+      Alert.alert('Could not register', 'That email may already be in use.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible={!!target} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={styles.modalCard} onPress={() => {}}>
+          <Text variant="h3" style={styles.modalTitle}>Register {target?.full_name}</Text>
+          <Text variant="caption" style={styles.modalSub}>
+            Creates app login credentials for this WhatsApp lead ({target?.phone_e164}).
+          </Text>
+          <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+          <TextField label="Password" value={password} onChangeText={setPassword} secure />
+          <Button title="Create login" loading={saving} onPress={submit} />
+          <Pressable onPress={onClose} style={styles.modalCancel}>
+            <Text variant="label" color={colors.textMuted}>Cancel</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -68,10 +133,12 @@ function UserCard({
   u,
   isDoctor,
   run,
+  onRegister,
 }: {
   u: User;
   isDoctor: boolean;
   run: (patch: (list: User[]) => User[], call: () => Promise<unknown>) => void;
+  onRegister: () => void;
 }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -114,6 +181,9 @@ function UserCard({
       </View>
 
       <View style={styles.actions}>
+        {!u.email && (
+          <Action icon="key-outline" label="Register" onPress={onRegister} />
+        )}
         <Action
           icon={u.customer_type === 'vip' ? 'star' : 'star-outline'}
           label={u.customer_type === 'vip' ? 'Unset VIP' : 'Set VIP'}
@@ -220,4 +290,15 @@ const makeStyles = (colors: AppColors) => StyleSheet.create({
   },
   action: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actionText: { fontFamily: fonts.medium, fontSize: 12 },
+  modalBackdrop: {
+    flex: 1, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  modalCard: {
+    alignSelf: 'stretch', backgroundColor: colors.backgroundElevated, borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.glassBorder, padding: spacing.xl,
+  },
+  modalTitle: { marginBottom: spacing.xs },
+  modalSub: { marginBottom: spacing.lg },
+  modalCancel: { alignSelf: 'center', paddingVertical: spacing.md, marginTop: spacing.sm },
 });

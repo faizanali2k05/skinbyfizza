@@ -4,11 +4,17 @@
  * Dark = the signature luxury look; Light = warm off-white with the same gold.
  */
 export const darkColors = {
-  background: '#0B0B0D',
-  backgroundElevated: '#121214',
+  background: '#0A0A0C',
+  backgroundElevated: '#131316',
   surface: '#18181B',
   surfaceMuted: '#202024',
   surfaceHigh: '#2A2A2F',
+
+  // Glassmorphism tokens (frosted translucent surfaces)
+  glassTint: 'rgba(255,255,255,0.045)',
+  glassStrong: 'rgba(255,255,255,0.075)',
+  glassBorder: 'rgba(255,255,255,0.10)',
+  glassHighlight: 'rgba(255,255,255,0.14)',
 
   gold: '#C9A24B',
   goldLight: '#E4C77A',
@@ -40,11 +46,17 @@ export const darkColors = {
 export type AppColors = { [K in keyof typeof darkColors]: string };
 
 export const lightColors: AppColors = {
-  background: '#FAF7F2',
+  background: '#F4F1EA',
   backgroundElevated: '#FFFFFF',
   surface: '#FFFFFF',
   surfaceMuted: '#F3EFE7',
   surfaceHigh: '#EAE3D5',
+
+  // Glassmorphism tokens
+  glassTint: 'rgba(255,255,255,0.55)',
+  glassStrong: 'rgba(255,255,255,0.7)',
+  glassBorder: 'rgba(255,255,255,0.75)',
+  glassHighlight: 'rgba(255,255,255,0.85)',
 
   gold: '#C9A24B',
   goldLight: '#9A7A2D', // darker so gold accents stay readable on light surfaces

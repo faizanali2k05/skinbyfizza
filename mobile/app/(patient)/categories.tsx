@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, EmptyState } from '../../src/components';
+import { Screen, Text, EmptyState, useProcedureSheet } from '../../src/components';
 import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
 import { AppColors } from '../../src/theme/palettes';
 import { radius, spacing } from '../../src/theme/spacing';
@@ -15,9 +14,11 @@ import { categoryTiles, procedurePlaceholder } from '../../src/data/decor';
 
 export default function Categories() {
   const { t } = useI18n();
-  const router = useRouter();
+  const { open } = useProcedureSheet();
   const { data: procedures, loading, refetch } = useQuery(api.getProcedures);
   const [active, setActive] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [q, setQ] = useState('');
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
 
@@ -31,14 +32,43 @@ export default function Categories() {
   const tileFor = (cat: string) =>
     categoryTiles.find((c) => c.key === cat)?.image ?? procedurePlaceholder;
 
-  const filtered = (procedures ?? []).filter((p) => !active || p.category === active);
+  const needle = q.trim().toLowerCase();
+  const filtered = (procedures ?? []).filter(
+    (p) =>
+      (!active || p.category === active) &&
+      (!needle ||
+        p.title.toLowerCase().includes(needle) ||
+        (p.description ?? '').toLowerCase().includes(needle)),
+  );
 
   return (
     <Screen scroll padded refreshing={loading} onRefresh={refetch}>
       <View style={styles.titleRow}>
         <Text variant="h1">{t('nav.categories')}</Text>
-        <Ionicons name="search" size={20} color={colors.textPrimary} />
+        <Pressable
+          hitSlop={8}
+          onPress={() => {
+            setSearching((s) => !s);
+            setQ('');
+          }}
+        >
+          <Ionicons name={searching ? 'close' : 'search'} size={20} color={colors.textPrimary} />
+        </Pressable>
       </View>
+
+      {searching && (
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={16} color={colors.textMuted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search treatments…"
+            placeholderTextColor={colors.textMuted}
+            value={q}
+            onChangeText={setQ}
+            autoFocus
+          />
+        </View>
+      )}
 
       {/* Category chips */}
       {categories.length > 0 && (
@@ -60,7 +90,7 @@ export default function Categories() {
             <Pressable
               key={p.id}
               style={styles.row}
-              onPress={() => router.push({ pathname: '/(patient)/procedure/[id]', params: { id: p.id } })}
+              onPress={() => open(p)}
             >
               <View style={styles.rowLeft}>
                 <Text variant="h3" style={styles.rowTitle}>
@@ -91,6 +121,13 @@ const makeStyles = (colors: AppColors) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: spacing.sm, marginBottom: spacing.xl,
   },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.glassTint, borderColor: colors.glassBorder,
+    borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg,
+    paddingHorizontal: spacing.lg, height: 48, marginBottom: spacing.md,
+  },
+  searchInput: { flex: 1, color: colors.textPrimary, fontFamily: fonts.regular, fontSize: 15, height: '100%' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
   chip: {
     paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill,

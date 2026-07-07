@@ -29,8 +29,8 @@ export function TextField({ label, error, hint, leftIcon, secure, style, ...rest
       <View
         style={[
           styles.field,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-          focused && { borderColor: colors.gold },
+          { backgroundColor: colors.glassTint, borderColor: colors.glassBorder },
+          focused && { borderColor: colors.gold, backgroundColor: colors.glassStrong },
           !!error && { borderColor: colors.error },
         ]}
       >
@@ -80,10 +80,10 @@ const styles = StyleSheet.create({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: radius.md,
-    borderWidth: 1,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: spacing.lg,
-    height: 54,
+    height: 56,
   },
   leftIcon: { marginRight: spacing.sm },
   input: { flex: 1, fontFamily: fonts.regular, fontSize: 15, height: '100%' },

@@ -13,17 +13,21 @@ export class ApiError extends Error {
 
 type TokenProvider = () => string | null;
 type Unauthorized = () => void;
+type Refresher = () => Promise<boolean>;
 
 let getToken: TokenProvider = () => null;
 let onUnauthorized: Unauthorized = () => {};
+let refreshSession: Refresher | null = null;
 
 /** Wired up once by AuthProvider so the client can attach the JWT + react to 401s. */
 export function configureApi(opts: {
   getToken: TokenProvider;
   onUnauthorized: Unauthorized;
+  refreshSession?: Refresher;
 }) {
   getToken = opts.getToken;
   onUnauthorized = opts.onUnauthorized;
+  refreshSession = opts.refreshSession ?? null;
 }
 
 type RequestOptions = {
@@ -47,6 +51,14 @@ function buildUrl(path: string, query?: RequestOptions['query']) {
 export async function apiRequest<T = unknown>(
   path: string,
   opts: RequestOptions = {},
+): Promise<T> {
+  return doRequest<T>(path, opts, true);
+}
+
+async function doRequest<T>(
+  path: string,
+  opts: RequestOptions,
+  allowRefresh: boolean,
 ): Promise<T> {
   const { method = 'GET', body, query, auth = true, signal } = opts;
 
@@ -73,6 +85,12 @@ export async function apiRequest<T = unknown>(
     const data = text ? safeJson(text) : null;
 
     if (res.status === 401) {
+      // Access token likely expired — try one silent refresh, then retry.
+      if (auth && allowRefresh && refreshSession) {
+        clearTimeout(timeout);
+        const ok = await refreshSession().catch(() => false);
+        if (ok) return doRequest<T>(path, opts, false);
+      }
       onUnauthorized();
       throw new ApiError('Unauthorized', 401, data);
     }

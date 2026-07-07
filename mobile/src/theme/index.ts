@@ -6,21 +6,29 @@ export { spacing, radius, screenPadding } from './spacing';
 import { colors } from './colors';
 import { spacing, radius } from './spacing';
 
-/** Shared elevation/shadow presets (subtle on dark surfaces). */
+/** Elevation presets — premium, layered depth (skeuomorphic lift + gold glow). */
 export const shadow = {
   card: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.32,
+    shadowRadius: 26,
+    elevation: 12,
   },
   soft: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  // Gold glow used under primary (skeuomorphic) buttons.
+  glow: {
+    shadowColor: '#C9A24B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.38,
+    shadowRadius: 20,
+    elevation: 10,
   },
 } as const;
 

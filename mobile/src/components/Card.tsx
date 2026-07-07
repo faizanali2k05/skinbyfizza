@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../theme/ThemeContext';
 import { radius, spacing } from '../theme/spacing';
 import { shadow } from '../theme';
@@ -12,37 +13,53 @@ type Props = {
   elevated?: boolean;
 };
 
-/** Rounded themed surface card; pressable when onPress is provided. */
+/**
+ * Premium glass card: frosted surface + top sheen (glassmorphism) layered over
+ * a soft drop shadow (skeuomorphic lift) with a fine light border.
+ */
 export function Card({ children, onPress, style, padded = true, elevated }: Props) {
   const { colors } = useTheme();
+
   const content = (
     <View
       style={[
+        styles.base,
+        elevated ? shadow.card : shadow.soft,
         {
           backgroundColor: colors.surface,
-          borderColor: colors.border,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderRadius: radius.lg,
-          overflow: 'hidden',
+          borderColor: colors.glassBorder,
         },
         padded && styles.padded,
-        elevated && shadow.card,
         style,
       ]}
     >
+      {/* Frosted top sheen */}
+      <LinearGradient
+        colors={[colors.glassHighlight, colors.glassTint, 'transparent']}
+        locations={[0, 0.15, 0.6]}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
       {children}
     </View>
   );
 
   if (!onPress) return content;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [pressed && styles.pressed]}>
+    <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressed}>
       {content}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  base: {
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
   padded: { padding: spacing.lg },
-  pressed: { opacity: 0.9, transform: [{ scale: 0.995 }] },
+  pressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
 });

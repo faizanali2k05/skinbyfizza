@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text } from '../../src/components';
@@ -9,6 +9,7 @@ import { radius, spacing } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
 import { AppLocale } from '../../src/i18n/translations';
 import { useAuth } from '../../src/auth/AuthContext';
+import { confirm } from '../../src/utils/confirm';
 
 type Tile = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -35,9 +36,7 @@ export default function StaffDashboard() {
     { icon: 'chatbubbles-outline', title: 'Chats', sub: isManager ? 'Triage & tag to doctor' : 'Primary & VIP threads', tone: colors.info, onPress: () => router.push('/(staff)/chats') },
     { icon: 'people-outline', title: 'Users', sub: isManager ? 'Rate, VIP & register leads' : 'Manage patients', tone: colors.gold, onPress: () => router.push('/(staff)/users') },
     { icon: 'calendar-outline', title: 'Appointments', sub: 'Confirm & manage', tone: colors.sage, onPress: () => router.push('/(staff)/appointments') },
-    ...(!isManager
-      ? [{ icon: 'sparkles-outline' as const, title: 'Treatments', sub: 'Add, edit & remove', tone: colors.rose, onPress: () => router.push('/(staff)/procedures') }]
-      : []),
+    { icon: 'sparkles-outline', title: 'Treatments', sub: 'Add, edit & remove', tone: colors.rose, onPress: () => router.push('/(staff)/procedures') },
   ];
 
   const cycleLocale = () => {
@@ -46,17 +45,17 @@ export default function StaffDashboard() {
   };
 
   const logout = () =>
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Log out',
-        style: 'destructive',
-        onPress: async () => {
-          await signOut();
-          router.replace('/(auth)/welcome');
-        },
+    confirm({
+      title: 'Log out',
+      message: 'Are you sure you want to log out?',
+      confirmLabel: 'Log out',
+      cancelLabel: 'Cancel',
+      destructive: true,
+      onConfirm: async () => {
+        await signOut();
+        router.replace('/(auth)/welcome');
       },
-    ]);
+    });
 
   return (
     <Screen scroll padded>

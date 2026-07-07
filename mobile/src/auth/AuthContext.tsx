@@ -66,12 +66,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState({ user: null, token: null, initializing: false });
   }, []);
 
-  // Wire the api client to this provider's token + 401 handler.
+  // Wire the api client to this provider's token + 401 handler + silent refresh.
   useEffect(() => {
     configureApi({
       getToken: () => tokenRef.current,
       onUnauthorized: () => {
         void clearSession();
+      },
+      // Exchange the stored refresh token for a new access token (once per 401).
+      refreshSession: async () => {
+        const refresh = await getItem(KEYS.refresh);
+        if (!refresh) return false;
+        const res = await apiRequest<{ token: string }>(endpoints.refresh, {
+          method: 'POST',
+          auth: false,
+          body: { refresh },
+        });
+        if (!res?.token) return false;
+        tokenRef.current = res.token;
+        await setItem(KEYS.token, res.token);
+        setState((s) => ({ ...s, token: res.token }));
+        return true;
       },
     });
   }, [clearSession]);

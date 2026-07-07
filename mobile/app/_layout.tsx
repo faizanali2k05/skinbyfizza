@@ -6,21 +6,22 @@ import { useAuth } from '../src/auth/AuthContext';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import {
-  PlayfairDisplay_400Regular,
-  PlayfairDisplay_500Medium,
-  PlayfairDisplay_600SemiBold,
-  PlayfairDisplay_700Bold,
-} from '@expo-google-fonts/playfair-display';
+  Outfit_400Regular,
+  Outfit_500Medium,
+  Outfit_600SemiBold,
+  Outfit_700Bold,
+} from '@expo-google-fonts/outfit';
 import {
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_600SemiBold,
-  Poppins_700Bold,
-} from '@expo-google-fonts/poppins';
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 import { AuthProvider } from '../src/auth/AuthContext';
 import { I18nProvider } from '../src/i18n';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
+import { ProcedureSheetProvider } from '../src/components';
 import { usePushToken } from '../src/hooks/usePushToken';
 
 /** Registers the Expo push token once the user is authenticated. */
@@ -85,7 +86,6 @@ function ThemedNavigator() {
         <Stack.Screen name="chat" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="prescriptions" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="procedure/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="book/[id]" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="profile-edit" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="about" options={{ animation: 'slide_from_right' }} />
@@ -98,14 +98,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_500Medium,
-    PlayfairDisplay_600SemiBold,
-    PlayfairDisplay_700Bold,
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
+    Outfit_400Regular,
+    Outfit_500Medium,
+    Outfit_600SemiBold,
+    Outfit_700Bold,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
   });
 
   useEffect(() => {
@@ -121,7 +121,9 @@ export default function RootLayout() {
           <AuthProvider>
             <PushRegistrar />
             <AuthGate />
-            <ThemedNavigator />
+            <ProcedureSheetProvider>
+              <ThemedNavigator />
+            </ProcedureSheetProvider>
           </AuthProvider>
         </I18nProvider>
       </ThemeProvider>

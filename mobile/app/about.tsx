@@ -1,15 +1,11 @@
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, Card } from '../src/components';
+import { Screen, Text, Card, Logo } from '../src/components';
 import { useTheme } from '../src/theme/ThemeContext';
 import { spacing } from '../src/theme/spacing';
-
-const INFO = [
-  { icon: 'location-outline' as const, label: 'Karachi Clinic', value: 'Karachi, Pakistan' },
-  { icon: 'time-outline' as const, label: 'Hours', value: 'Mon–Sat, 11:00 AM – 8:00 PM' },
-  { icon: 'sparkles-outline' as const, label: 'Services', value: 'Facials, Injectables, Laser, Skin Care & more' },
-];
+import { useQuery } from '../src/hooks/useQuery';
+import { api } from '../src/api/services';
 
 const SOCIAL = [
   { icon: 'logo-instagram' as const, label: 'Instagram', url: 'https://instagram.com' },
@@ -19,6 +15,12 @@ const SOCIAL = [
 export default function About() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { data } = useQuery(api.getAbout);
+
+  const description =
+    data?.about?.description ??
+    'Expert dermatology & aesthetic care — personalised treatments, delivered with a gentle, professional touch.';
+  const locations = data?.locations ?? [];
 
   return (
     <Screen scroll padded edges={['top']}>
@@ -30,30 +32,46 @@ export default function About() {
         <View style={{ width: 24 }} />
       </View>
 
-      <Text variant="display" style={styles.brand}>
-        Skin By{'\n'}Dr. Fizza G
-      </Text>
-      <Text variant="body" style={styles.tagline}>
-        Expert dermatology & aesthetic care — personalised treatments, delivered with a
-        gentle, professional touch.
+      <View style={styles.logoWrap}>
+        <Logo size="large" />
+      </View>
+      <Text variant="body" center style={styles.tagline}>
+        {description}
       </Text>
 
-      {INFO.map((row) => (
-        <Card key={row.label} style={styles.card} padded>
+      {locations.map((loc) => (
+        <Card key={loc.id} style={styles.card} padded>
           <View style={styles.row}>
-            <Ionicons name={row.icon} size={20} color={colors.gold} />
+            <Ionicons name="location-outline" size={20} color={colors.gold} />
             <View style={styles.flex}>
-              <Text variant="overline">{row.label}</Text>
-              <Text variant="body" color={colors.textPrimary}>{row.value}</Text>
+              <Text variant="overline">{loc.name}</Text>
+              <Text variant="body" color={colors.textPrimary}>
+                {[loc.address, loc.city].filter(Boolean).join(', ') || loc.city || '—'}
+              </Text>
+              {loc.phone ? <Text variant="caption">{loc.phone}</Text> : null}
             </View>
           </View>
         </Card>
       ))}
 
+      <Card style={styles.card} padded>
+        <View style={styles.row}>
+          <Ionicons name="time-outline" size={20} color={colors.gold} />
+          <View style={styles.flex}>
+            <Text variant="overline">Hours</Text>
+            <Text variant="body" color={colors.textPrimary}>Mon–Sat, 11:00 AM – 8:00 PM</Text>
+          </View>
+        </View>
+      </Card>
+
       <Text variant="h3" style={styles.follow}>Follow us</Text>
       <View style={styles.social}>
         {SOCIAL.map((s) => (
-          <Pressable key={s.label} style={[styles.socialBtn, { borderColor: colors.border, backgroundColor: colors.surface }]} onPress={() => Linking.openURL(s.url)}>
+          <Pressable
+            key={s.label}
+            style={[styles.socialBtn, { borderColor: colors.glassBorder, backgroundColor: colors.glassTint }]}
+            onPress={() => Linking.openURL(s.url)}
+          >
             <Ionicons name={s.icon} size={20} color={colors.gold} />
             <Text variant="label">{s.label}</Text>
           </Pressable>
@@ -68,7 +86,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: spacing.sm, marginBottom: spacing.xl,
   },
-  brand: { marginBottom: spacing.md },
+  logoWrap: { alignItems: 'center', marginBottom: spacing.lg },
   tagline: { marginBottom: spacing.xl },
   card: { marginBottom: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },

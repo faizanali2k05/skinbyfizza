@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, Badge } from '../../src/components';
@@ -9,6 +9,7 @@ import { radius, spacing } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
 import { useAuth } from '../../src/auth/AuthContext';
 import { AppLocale } from '../../src/i18n/translations';
+import { confirm } from '../../src/utils/confirm';
 
 type Row = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -114,17 +115,16 @@ export default function More() {
         <Pressable
           style={styles.logout}
           onPress={() =>
-            Alert.alert(t('more.logout'), '', [
-              { text: t('common.cancel'), style: 'cancel' },
-              {
-                text: t('more.logout'),
-                style: 'destructive',
-                onPress: async () => {
-                  await signOut();
-                  router.replace('/(auth)/welcome');
-                },
+            confirm({
+              title: t('more.logout'),
+              confirmLabel: t('more.logout'),
+              cancelLabel: t('common.cancel'),
+              destructive: true,
+              onConfirm: async () => {
+                await signOut();
+                router.replace('/(auth)/welcome');
               },
-            ])
+            })
           }
         >
           <Ionicons name="log-out-outline" size={20} color={colors.error} />

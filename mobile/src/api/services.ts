@@ -56,6 +56,9 @@ export const api = {
   getNotifications: () =>
     apiRequest<{ notifications: NotificationItem[] }>(endpoints.notifications).then((r) => r.notifications ?? []),
 
+  markNotificationRead: (id: string) =>
+    apiRequest(`${endpoints.notifications}/${id}/read`, { method: 'POST' }),
+
   registerPushToken: (expo_push_token: string) =>
     apiRequest(endpoints.registerPushToken, { method: 'POST', body: { expo_push_token } }),
 
@@ -122,4 +125,24 @@ export const api = {
     apiRequest<{ user: User }>(`/users/${id}/role`, { method: 'POST', body: { role } }),
 
   deleteUser: (id: string) => apiRequest<{ ok: boolean }>(`/users/${id}`, { method: 'DELETE' }),
+
+  // ---- clinic info ----
+  getAbout: () =>
+    apiRequest<{
+      about: { description?: string; email?: string; phone?: string; instagram?: string } | null;
+      locations: { id: string; name: string; city?: string; address?: string; phone?: string }[];
+    }>('/about', { auth: false }),
+
+  // ---- doctor instructions (team-facing + doctor-self) ----
+  getInstructions: (userId: string) =>
+    apiRequest<{ instructions: { id: string; audience: 'team' | 'doctor'; body: string; created_at: string }[] }>(
+      endpoints.instructions,
+      { query: { user_id: userId } },
+    ).then((r) => r.instructions ?? []),
+
+  addInstruction: (input: { user_id: string; audience: 'team' | 'doctor'; body: string }) =>
+    apiRequest<{ instruction: { id: string; audience: 'team' | 'doctor'; body: string; created_at: string } }>(
+      endpoints.instructions,
+      { method: 'POST', body: input },
+    ),
 };
