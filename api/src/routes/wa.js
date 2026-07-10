@@ -57,7 +57,8 @@ router.post('/inbound', async (req, res, next) => {
       [conv.id, user.id, text, waId],
     );
     await query(
-      `UPDATE conversations SET last_message = $2, last_sender_id = $3, unread_count = unread_count + 1, updated_at = now() WHERE id = $1`,
+      `UPDATE conversations SET last_message = $2, last_sender_id = $3, unread_count = unread_count + 1,
+              updated_at = now(), last_reminder_at = NULL WHERE id = $1`,
       [conv.id, text, user.id],
     );
 

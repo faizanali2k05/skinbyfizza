@@ -20,7 +20,10 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -57,7 +60,11 @@
       "typedRoutes": false
     },
     "extra": {
-      "apiBaseUrl": "https://skinapi.seemaai.co.uk"
-    }
+      "apiBaseUrl": "https://skinapi.seemaai.co.uk",
+      "eas": {
+        "projectId": "9b7a1d37-e2d2-4bc9-9998-6e6ed40256dd"
+      }
+    },
+    "owner": "faizanali2k05"
   }
 }

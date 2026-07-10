@@ -5,6 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const config = require('./config');
 const { pool } = require('./db');
+const { startReminderLoop } = require('./lib/reminders');
 
 const app = express();
 
@@ -55,6 +56,7 @@ async function start() {
     console.error('[db] connection failed:', e.message);
   }
   app.listen(config.port, () => console.log(`[api] listening on :${config.port}`));
+  startReminderLoop(); // hourly nudge for unanswered patient messages
 }
 
 start();

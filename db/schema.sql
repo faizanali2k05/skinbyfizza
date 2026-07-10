@@ -73,6 +73,12 @@ CREATE TABLE IF NOT EXISTS conversations (
 CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations (user_id);
 CREATE INDEX IF NOT EXISTS idx_conv_triage ON conversations (triage);
 
+-- Reminder escalation: when the last message is from the patient (last_sender_id
+-- = user_id) and stays unanswered, staff get an hourly push until they reply.
+-- last_reminder_at throttles those pushes to once an hour per thread.
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS last_reminder_at timestamptz;
+CREATE INDEX IF NOT EXISTS idx_conv_awaiting ON conversations (last_sender_id, updated_at);
+
 CREATE TABLE IF NOT EXISTS messages (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id     uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,

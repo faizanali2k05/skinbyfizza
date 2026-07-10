@@ -127,12 +127,23 @@ router.post('/send', requireAuth, async (req, res, next) => {
       )
     ).rows[0];
 
-    // Bump the conversation summary.
+    // Bump the conversation summary. Reset the reminder clock on every new
+    // message so the hour is measured from the latest one.
     const summary = body || (mediaUrl ? '📷 Photo' : '');
     await query(
-      `UPDATE conversations SET last_message = $2, last_sender_id = $3, updated_at = now() WHERE id = $1`,
+      `UPDATE conversations SET last_message = $2, last_sender_id = $3, updated_at = now(), last_reminder_at = NULL WHERE id = $1`,
       [convId, summary, req.user.id],
     );
+
+    // When a staff member replies, clear any outstanding reminder nudges for
+    // this thread so they don't linger in anyone's notification bell.
+    if (req.user.role !== 'user') {
+      await query(
+        `UPDATE notifications SET is_read = true
+         WHERE is_read = false AND data->>'kind' = 'reminder' AND data->>'conversation_id' = $1`,
+        [String(convId)],
+      );
+    }
 
     // Deliver notifications + WhatsApp outbound (best-effort, after responding).
     const conv = (
