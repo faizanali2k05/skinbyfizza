@@ -36,13 +36,6 @@ export const api = {
     apiRequest<{ appointments: Appointment[] }>(endpoints.appointments, { query: params })
       .then((r) => r.appointments ?? []),
 
-  bookAppointment: (input: {
-    procedure_id?: string;
-    scheduled_at: string;
-    city?: string;
-    consultation?: Record<string, unknown>;
-  }) => apiRequest<{ appointment: Appointment }>(endpoints.appointmentBook, { method: 'POST', body: input }),
-
   assignAppointment: (input: { user_id: string; procedure_id?: string; scheduled_at: string; city?: string }) =>
     apiRequest<{ appointment: Appointment }>(endpoints.appointmentAssign, { method: 'POST', body: input }),
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -9,22 +9,26 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text } from '../src/components';
-import { useTheme, useThemedStyles } from '../src/theme/ThemeContext';
-import { AppColors } from '../src/theme/palettes';
-import { radius, spacing } from '../src/theme/spacing';
-import { fonts } from '../src/theme/typography';
-import { api } from '../src/api/services';
-import { ApiError } from '../src/api/client';
+import { Screen, Text, EmptyState, Button } from '../../src/components';
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
+import { AppColors } from '../../src/theme/palettes';
+import { radius, spacing } from '../../src/theme/spacing';
+import { fonts } from '../../src/theme/typography';
+import { useAuth } from '../../src/auth/AuthContext';
+import { api } from '../../src/api/services';
+import { ApiError } from '../../src/api/client';
 
 type Msg = { id: string; role: 'user' | 'ai'; text: string; pending?: boolean };
 
 let seq = 0;
 const uid = () => `m${++seq}`;
 
-export default function Chat() {
+/** AI Skin Consultant — patient tab. Arriving with ?topic= prefills the input
+ * (e.g. tapped "Ask about this treatment" from a procedure sheet). */
+export default function AiConsultant() {
+  const { topic } = useLocalSearchParams<{ topic?: string }>();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [messages, setMessages] = useState<Msg[]>([
@@ -32,8 +36,17 @@ export default function Chat() {
   ]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const { isAuthenticated } = useAuth();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+
+  // Consume the param once we've used it — this is a tab, so the param sticks
+  // around otherwise and asking about the same treatment twice wouldn't prefill.
+  useEffect(() => {
+    if (!topic) return;
+    setInput(`Tell me about ${topic}`);
+    router.setParams({ topic: '' });
+  }, [topic, router]);
 
   const scrollDown = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
 
@@ -65,16 +78,23 @@ export default function Chat() {
   return (
     <Screen padded={false} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-        </Pressable>
         <View style={styles.headerCenter}>
           <View style={styles.aiDot} />
-          <Text variant="h3">Skin Consultant</Text>
+          <Text variant="h2">Skin Consultant</Text>
         </View>
-        <View style={{ width: 24 }} />
+        <Text variant="caption" style={styles.headerSub}>Private & judgement-free — ask anything</Text>
       </View>
 
+      {!isAuthenticated ? (
+        <View style={styles.gate}>
+          <EmptyState
+            icon="sparkles-outline"
+            title="Log in to use the consultant"
+            subtitle="Sign in so the clinic can follow up on your concerns."
+          />
+          <Button title="Sign in" onPress={() => router.push('/(auth)/sign-in')} style={styles.gateBtn} />
+        </View>
+      ) : (
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -124,18 +144,21 @@ export default function Chat() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      )}
     </Screen>
   );
 }
 
 const makeStyles = (colors: AppColors) => StyleSheet.create({
   flex: { flex: 1 },
+  gate: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.xl },
+  gateBtn: { marginTop: spacing.xl },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl, paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider,
   },
   headerCenter: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  headerSub: { marginTop: 2 },
   aiDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.sage },
   list: { padding: spacing.xl, gap: spacing.md },
   bubble: { maxWidth: '82%', borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },

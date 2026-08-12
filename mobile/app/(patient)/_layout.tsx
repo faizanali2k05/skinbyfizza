@@ -5,8 +5,10 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../src/theme/typography';
 import { useTheme } from '../../src/theme/ThemeContext';
+import { ElevatedHomeTabButton } from '../../src/components';
 
-/** Premium glass bottom nav: frosted blur + fine top border, safe-area aware. */
+/** Premium glass bottom nav: frosted blur + fine top border, safe-area aware.
+ * Home is centered and raised as a gold FAB — the anchor of the bar. */
 export default function PatientTabsLayout() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -32,6 +34,9 @@ export default function PatientTabsLayout() {
           paddingTop: 8,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           elevation: 0,
+          // The centered Home button is raised above the bar — without this it
+          // gets clipped to the bar's bounds on Android.
+          overflow: 'visible',
         },
         tabBarLabelStyle: {
           fontFamily: fonts.medium,
@@ -44,13 +49,6 @@ export default function PatientTabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="discover"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={21} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="categories"
         options={{
           title: 'Treatments',
@@ -58,10 +56,25 @@ export default function PatientTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="appointments"
+        name="ai"
         options={{
-          title: 'Bookings',
-          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={20} color={color} />,
+          title: 'AI Consult',
+          tabBarIcon: ({ color }) => <Ionicons name="sparkles-outline" size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="discover"
+        options={{
+          title: '',
+          tabBarAccessibilityLabel: 'Home',
+          tabBarButton: (props) => <ElevatedHomeTabButton {...props} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={20} color={color} />,
         }}
       />
       <Tabs.Screen

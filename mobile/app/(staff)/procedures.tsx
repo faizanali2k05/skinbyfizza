@@ -32,18 +32,12 @@ export default function StaffProcedures() {
 
   return (
     <Screen scroll padded refreshing={loading} onRefresh={refetch}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-        </Pressable>
-        <Text variant="h2">Treatments</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <Text variant="h1" style={styles.title}>Treatments</Text>
 
       <Button
         title="Add treatment"
         icon={<Ionicons name="add" size={18} color={colors.textInverse} />}
-        onPress={() => router.push('/(staff)/procedure-form')}
+        onPress={() => router.push('/staff-procedure-form')}
         style={styles.add}
       />
 
@@ -57,7 +51,7 @@ export default function StaffProcedures() {
             key={p.id}
             style={styles.card}
             padded
-            onPress={() => router.push({ pathname: '/(staff)/procedure-form', params: { id: p.id } })}
+            onPress={() => router.push({ pathname: '/staff-procedure-form', params: { id: p.id } })}
           >
             <View style={styles.row}>
               <View style={styles.flex}>
@@ -80,10 +74,7 @@ export default function StaffProcedures() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: spacing.sm, marginBottom: spacing.lg,
-  },
+  title: { marginTop: spacing.sm, marginBottom: spacing.lg },
   add: { marginBottom: spacing.lg },
   card: { marginBottom: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },

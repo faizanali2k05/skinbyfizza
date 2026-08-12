@@ -1,14 +1,13 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, Badge, Card, Button, EmptyState } from '../../src/components';
-import { useTheme } from '../../src/theme/ThemeContext';
-import { spacing } from '../../src/theme/spacing';
-import { useI18n } from '../../src/i18n';
-import { useAuth } from '../../src/auth/AuthContext';
-import { useQuery } from '../../src/hooks/useQuery';
-import { api } from '../../src/api/services';
-import { AppointmentStatus } from '../../src/api/types';
+import { Screen, Text, Badge, Card, EmptyState } from '../src/components';
+import { useTheme } from '../src/theme/ThemeContext';
+import { spacing } from '../src/theme/spacing';
+import { useAuth } from '../src/auth/AuthContext';
+import { useQuery } from '../src/hooks/useQuery';
+import { api } from '../src/api/services';
+import { AppointmentStatus } from '../src/api/types';
 
 const STATUS_TONE: Record<AppointmentStatus, 'sage' | 'gold' | 'rose' | 'neutral'> = {
   confirmed: 'sage',
@@ -27,8 +26,9 @@ function fmt(dt: string) {
   }
 }
 
-export default function Appointments() {
-  const { t } = useI18n();
+/** Read-only: patients no longer self-book — visits are scheduled by the
+ * clinic (via the AI consultant or staff) and simply show up here. */
+export default function MyAppointments() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const { data, loading, error, refetch } = useQuery(
@@ -40,23 +40,31 @@ export default function Appointments() {
   const { colors } = useTheme();
 
   return (
-    <Screen scroll padded refreshing={loading} onRefresh={refetch}>
-      <Text variant="h1" style={styles.title}>
-        {t('nav.appointments')}
-      </Text>
+    <Screen scroll padded edges={['top']} refreshing={loading} onRefresh={refetch}>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+        </Pressable>
+        <Text variant="h2">My appointments</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
       {!isAuthenticated ? (
         <EmptyState
           icon="lock-closed-outline"
           title="Log in to view appointments"
-          subtitle="Sign in to book and track your visits."
+          subtitle="Sign in to track your visits."
         />
       ) : loading && !data ? (
         <ActivityIndicator color={colors.gold} style={{ marginTop: spacing.huge }} />
       ) : error ? (
         <EmptyState icon="cloud-offline-outline" title="Couldn't load appointments" subtitle="Pull down to retry." />
       ) : items.length === 0 ? (
-        <EmptyState icon="calendar-outline" title="No appointments yet" subtitle="Book a treatment and it shows up here." />
+        <EmptyState
+          icon="calendar-outline"
+          title="No appointments yet"
+          subtitle="Ask the AI consultant or message the clinic to schedule a visit."
+        />
       ) : (
         items.map((a) => (
           <Card key={a.id} style={styles.card} elevated>
@@ -77,20 +85,16 @@ export default function Appointments() {
           </Card>
         ))
       )}
-
-      <Button
-        title="Book a treatment"
-        style={styles.book}
-        onPress={() => router.push(isAuthenticated ? '/book/new' : '/(auth)/sign-in')}
-      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { marginTop: spacing.sm, marginBottom: spacing.xl },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginTop: spacing.sm, marginBottom: spacing.xl,
+  },
   card: { marginBottom: spacing.lg },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs },
-  book: { marginTop: spacing.lg },
 });

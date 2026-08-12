@@ -83,12 +83,14 @@ function ThemedNavigator() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(patient)" />
         <Stack.Screen name="(staff)" />
-        <Stack.Screen name="chat" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="prescriptions" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="book/[id]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="my-appointments" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="profile-edit" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="about" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="staff-chat/[id]" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="staff-procedure-form" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="staff-prescription-form" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </GestureHandlerRootView>
   );

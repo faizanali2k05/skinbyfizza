@@ -52,7 +52,7 @@ export default function Discover() {
         <Pressable
           style={styles.iconBtn}
           hitSlop={8}
-          onPress={() => router.push('/(patient)/notifications')}
+          onPress={() => router.push('/notifications')}
         >
           <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
         </Pressable>

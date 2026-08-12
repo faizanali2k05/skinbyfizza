@@ -1,5 +1,4 @@
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Text, Card, Badge, EmptyState } from '../../src/components';
 import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
@@ -29,7 +28,6 @@ function fmt(dt: string) {
 }
 
 export default function StaffAppointments() {
-  const router = useRouter();
   const { data, loading, refetch, setData } = useQuery(() => api.getAppointments(), [], { refetchOnFocus: true });
   const items = data ?? [];
   const { colors } = useTheme();
@@ -46,13 +44,7 @@ export default function StaffAppointments() {
 
   return (
     <Screen scroll padded refreshing={loading} onRefresh={refetch}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-        </Pressable>
-        <Text variant="h2">Appointments</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <Text variant="h1" style={styles.title}>Appointments</Text>
 
       {loading && !data ? (
         <ActivityIndicator color={colors.gold} style={{ marginTop: spacing.huge }} />
@@ -89,10 +81,7 @@ export default function StaffAppointments() {
 }
 
 const makeStyles = (colors: AppColors) => StyleSheet.create({
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: spacing.sm, marginBottom: spacing.xl,
-  },
+  title: { marginTop: spacing.sm, marginBottom: spacing.xl },
   card: { marginBottom: spacing.md },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   flex: { flex: 1 },

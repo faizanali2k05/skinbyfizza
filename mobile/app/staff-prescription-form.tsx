@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, TextField, Button, Card, EmptyState } from '../../src/components';
-import { useTheme } from '../../src/theme/ThemeContext';
-import { spacing } from '../../src/theme/spacing';
-import { useQuery } from '../../src/hooks/useQuery';
-import { api } from '../../src/api/services';
-import { ApiError } from '../../src/api/client';
+import { Screen, Text, TextField, Button, Card, EmptyState } from '../src/components';
+import { useTheme } from '../src/theme/ThemeContext';
+import { spacing } from '../src/theme/spacing';
+import { useQuery } from '../src/hooks/useQuery';
+import { api } from '../src/api/services';
+import { ApiError } from '../src/api/client';
 
 export default function PrescriptionForm() {
   const { user_id, name } = useLocalSearchParams<{ user_id: string; name?: string }>();

@@ -30,13 +30,7 @@ export default function StaffChats() {
 
   return (
     <Screen scroll padded refreshing={loading} onRefresh={refetch}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-        </Pressable>
-        <Text variant="h2">Chats</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <Text variant="h1" style={styles.title}>Chats</Text>
 
       {loading && !data ? (
         <ActivityIndicator color={colors.gold} style={{ marginTop: spacing.huge }} />
@@ -48,7 +42,7 @@ export default function StaffChats() {
             key={t.id}
             style={styles.card}
             onPress={() =>
-              router.push({ pathname: '/(staff)/chat/[id]', params: { id: t.id, name: t.full_name, platform: t.platform } })
+              router.push({ pathname: '/staff-chat/[id]', params: { id: t.id, name: t.full_name, platform: t.platform } })
             }
             padded
           >
@@ -82,10 +76,7 @@ export default function StaffChats() {
 }
 
 const makeStyles = (colors: AppColors) => StyleSheet.create({
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: spacing.sm, marginBottom: spacing.xl,
-  },
+  title: { marginTop: spacing.sm, marginBottom: spacing.xl },
   card: { marginBottom: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },

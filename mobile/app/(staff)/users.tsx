@@ -34,13 +34,7 @@ export default function StaffUsers() {
 
   return (
     <Screen scroll padded refreshing={loading} onRefresh={refetch}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-        </Pressable>
-        <Text variant="h2">Users</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <Text variant="h1" style={styles.title}>Users</Text>
 
       <View style={styles.search}>
         <Ionicons name="search" size={18} color={colors.textMuted} />
@@ -223,7 +217,7 @@ function UserCard({
             icon="medkit-outline"
             label="Prescription"
             onPress={() =>
-              router.push({ pathname: '/(staff)/prescription-form', params: { user_id: u.id, name: u.full_name } })
+              router.push({ pathname: '/staff-prescription-form', params: { user_id: u.id, name: u.full_name } })
             }
           />
         )}
@@ -268,10 +262,7 @@ function Action({
 }
 
 const makeStyles = (colors: AppColors) => StyleSheet.create({
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: spacing.sm, marginBottom: spacing.lg,
-  },
+  title: { marginTop: spacing.sm, marginBottom: spacing.lg },
   search: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface,
     borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,

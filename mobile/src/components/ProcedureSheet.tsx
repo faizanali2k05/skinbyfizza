@@ -53,9 +53,9 @@ function ProcedureSheet({ procedure, onClose }: { procedure: Procedure | null; o
   const { isAuthenticated } = useAuth();
   const p = procedure;
 
-  const book = () => {
+  const askAi = () => {
     onClose();
-    if (isAuthenticated && p) router.push({ pathname: '/book/[id]', params: { id: p.id } });
+    if (isAuthenticated && p) router.push({ pathname: '/(patient)/ai', params: { topic: p.title } });
     else router.push('/(auth)/sign-in');
   };
 
@@ -105,7 +105,11 @@ function ProcedureSheet({ procedure, onClose }: { procedure: Procedure | null; o
               </ScrollView>
 
               <View style={styles.cta}>
-                <Button title={isAuthenticated ? 'Book now' : 'Log in to book'} onPress={book} />
+                <Button
+                  title={isAuthenticated ? 'Ask the AI consultant' : 'Log in to ask'}
+                  icon={<Ionicons name="sparkles-outline" size={17} color={colors.textInverse} />}
+                  onPress={askAi}
+                />
               </View>
             </>
           ) : null}

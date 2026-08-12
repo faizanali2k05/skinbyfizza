@@ -27,7 +27,6 @@ export const endpoints = {
   chatSetPrimary: '/chat/set-primary',
   chatTagDoctor: '/chat/tag-doctor',
   appointments: '/appointments',
-  appointmentBook: '/appointments/book',
   appointmentAssign: '/appointments/assign',
   appointmentReschedule: '/appointments/reschedule',
   procedures: '/procedures',

@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, TextField, Button } from '../../src/components';
-import { useTheme } from '../../src/theme/ThemeContext';
-import { spacing } from '../../src/theme/spacing';
-import { api } from '../../src/api/services';
-import { ApiError } from '../../src/api/client';
+import { Screen, Text, TextField, Button } from '../src/components';
+import { useTheme } from '../src/theme/ThemeContext';
+import { spacing } from '../src/theme/spacing';
+import { api } from '../src/api/services';
+import { ApiError } from '../src/api/client';
 
 export default function ProcedureForm() {
   const { id } = useLocalSearchParams<{ id?: string }>();

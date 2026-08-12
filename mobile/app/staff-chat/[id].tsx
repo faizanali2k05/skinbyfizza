@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, ChatThread } from '../../../src/components';
-import { useTheme, useThemedStyles } from '../../../src/theme/ThemeContext';
-import { AppColors } from '../../../src/theme/palettes';
-import { spacing } from '../../../src/theme/spacing';
+import { Screen, Text, ChatThread } from '../../src/components';
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
+import { AppColors } from '../../src/theme/palettes';
+import { spacing } from '../../src/theme/spacing';
 
 export default function StaffChatThread() {
   const { id, name, platform } = useLocalSearchParams<{ id: string; name?: string; platform?: string }>();

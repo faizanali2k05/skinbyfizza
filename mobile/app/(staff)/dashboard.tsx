@@ -2,23 +2,25 @@ import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text } from '../../src/components';
+import { Screen, Text, Card } from '../../src/components';
 import { useTheme, useThemedStyles } from '../../src/theme/ThemeContext';
 import { AppColors } from '../../src/theme/palettes';
-import { radius, spacing } from '../../src/theme/spacing';
+import { spacing } from '../../src/theme/spacing';
 import { useI18n } from '../../src/i18n';
 import { AppLocale } from '../../src/i18n/translations';
 import { useAuth } from '../../src/auth/AuthContext';
 import { confirm } from '../../src/utils/confirm';
+import { useQuery } from '../../src/hooks/useQuery';
+import { api } from '../../src/api/services';
 
-type Tile = {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  sub: string;
-  tone: string;
-  onPress: () => void;
-};
+function isToday(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  return d.toDateString() === now.toDateString();
+}
 
+/** Staff Home tab — greeting, at-a-glance stats, settings. Chats / Users /
+ * Appointments / Treatments now live as their own tabs on the bar below. */
 export default function StaffDashboard() {
   const { user, signOut, refreshUser } = useAuth();
   const { colors, isDark, toggle } = useTheme();
@@ -31,12 +33,21 @@ export default function StaffDashboard() {
     refreshUser().catch(() => {});
   }, [refreshUser]);
 
-  // Doctor gets treatment management; manager only triages people & bookings.
-  const tiles: Tile[] = [
-    { icon: 'chatbubbles-outline', title: 'Chats', sub: isManager ? 'Triage & tag to doctor' : 'Primary & VIP threads', tone: colors.info, onPress: () => router.push('/(staff)/chats') },
-    { icon: 'people-outline', title: 'Users', sub: isManager ? 'Rate, VIP & register leads' : 'Manage patients', tone: colors.gold, onPress: () => router.push('/(staff)/users') },
-    { icon: 'calendar-outline', title: 'Appointments', sub: 'Confirm & manage', tone: colors.sage, onPress: () => router.push('/(staff)/appointments') },
-    { icon: 'sparkles-outline', title: 'Treatments', sub: 'Add, edit & remove', tone: colors.rose, onPress: () => router.push('/(staff)/procedures') },
+  const { data: threads } = useQuery(api.getThreads, [], { refetchOnFocus: true });
+  const { data: appointments } = useQuery(() => api.getAppointments(), [], { refetchOnFocus: true });
+  const { data: users } = useQuery(() => api.getUsers(), [], { refetchOnFocus: true });
+
+  // "Awaiting a staff reply" = the last message in the thread came from the
+  // patient. Same rule the backend reminder sweep uses. (unread_count is not
+  // usable here: only WhatsApp inbound bumps it and nothing ever clears it.)
+  const needsReply = (threads ?? []).filter((t) => t.last_sender_id === t.user_id).length;
+  const todaysVisits = (appointments ?? []).filter((a) => isToday(a.scheduled_at) && a.status !== 'cancelled').length;
+  const patients = (users ?? []).filter((u) => u.role === 'user').length;
+
+  const stats = [
+    { icon: 'chatbubbles-outline' as const, value: needsReply, label: 'Need a reply', tone: colors.info, onPress: () => router.push('/(staff)/chats') },
+    { icon: 'calendar-outline' as const, value: todaysVisits, label: "Today's visits", tone: colors.sage, onPress: () => router.push('/(staff)/appointments') },
+    { icon: 'people-outline' as const, value: patients, label: 'Patients', tone: colors.gold, onPress: () => router.push('/(staff)/users') },
   ];
 
   const cycleLocale = () => {
@@ -68,15 +79,15 @@ export default function StaffDashboard() {
         </View>
       </View>
 
-      <View style={styles.grid}>
-        {tiles.map((tile) => (
-          <Pressable key={tile.title} style={styles.tile} onPress={tile.onPress}>
-            <View style={[styles.tileIcon, { backgroundColor: tile.tone + '22' }]}>
-              <Ionicons name={tile.icon} size={22} color={tile.tone} />
+      <View style={styles.statsRow}>
+        {stats.map((s) => (
+          <Card key={s.label} style={styles.statCard} padded onPress={s.onPress}>
+            <View style={[styles.statIcon, { backgroundColor: s.tone + '22' }]}>
+              <Ionicons name={s.icon} size={18} color={s.tone} />
             </View>
-            <Text variant="title">{tile.title}</Text>
-            <Text variant="caption">{tile.sub}</Text>
-          </Pressable>
+            <Text variant="h2" style={styles.statValue}>{s.value}</Text>
+            <Text variant="caption">{s.label}</Text>
+          </Card>
         ))}
       </View>
 
@@ -107,12 +118,10 @@ const makeStyles = (c: AppColors) =>
   StyleSheet.create({
     flex: { flex: 1 },
     header: { flexDirection: 'row', alignItems: 'flex-start', marginTop: spacing.sm, marginBottom: spacing.xl },
-    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-    tile: {
-      width: '47%', flexGrow: 1, backgroundColor: c.surface, borderRadius: radius.lg,
-      borderWidth: StyleSheet.hairlineWidth, borderColor: c.border, padding: spacing.lg, gap: 4,
-    },
-    tileIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+    statsRow: { flexDirection: 'row', gap: spacing.md },
+    statCard: { flex: 1, gap: 2 },
+    statIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+    statValue: { marginTop: 2 },
     settingsLabel: { marginTop: spacing.xxl, marginBottom: spacing.sm },
     settingRow: {
       flexDirection: 'row', alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.lg,
