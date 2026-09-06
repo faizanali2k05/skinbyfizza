@@ -48,3 +48,10 @@ cd mobile
 npm install
 npm start          # opens Expo Go (QR) — scan with the Expo Go app
 ```
+
+## Docs
+
+- `docs/WEB_PRD.md` — product requirements for the **web app** (the next build; wrapped with Capacitor for Android/iOS afterwards).
+- `docs/WEB_ARCHITECTURE.md` — stack, folder layout, API contract, platform-abstraction layer, deploy path for the web app.
+- `docs/ARCHITECTURE.md` — architecture record for the current Expo app.
+- `prd.md` — historical PRD for the retired Flutter + Flask + Supabase stack.

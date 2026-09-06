@@ -1,0 +1,90 @@
+# Skin By Dr. Fizza G — full stack (database + API + web client).
+#
+# Port policy on this VPS: NOTHING is published to 0.0.0.0. The host's nginx is
+# the only public entry point and proxies to these loopback ports, so the stack
+# cannot collide with (or be reached around) agent-crm :3000, n8n :5678, or
+# Supabase :8000/:5432/:6543.
+#
+#   skin_web  127.0.0.1:8120 -> 80
+#   skin_api  127.0.0.1:8121 -> 3000
+#   skin_db   not published at all — reachable only on the internal network
+
+name: skinbyfizza
+
+services:
+  skin_db:
+    image: postgres:16-alpine
+    container_name: skin_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - skin_db_data:/var/lib/postgresql/data
+      # Applied once, on an empty data directory.
+      - ../db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - skin_net
+
+  skin_api:
+    build:
+      context: ../api
+    container_name: skin_api
+    restart: unless-stopped
+    depends_on:
+      skin_db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@skin_db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      PUBLIC_BASE_URL: ${PUBLIC_API_URL}
+      # Browser origins allowed to call the API (capacitor:// entries are for
+      # the future native wrap — harmless now, required later).
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      UPLOADS_DIR: /app/uploads
+      # AI consultant is delegated to the n8n on this box (n8n_n8n_network).
+      N8N_AI_URL: ${N8N_AI_URL}
+      WA_INBOUND_SECRET: ${WA_INBOUND_SECRET}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
+    volumes:
+      - skin_uploads:/app/uploads
+      - ./seed.js:/app/seed.js:ro
+    ports:
+      - '127.0.0.1:8121:3000'
+    networks:
+      - skin_net
+      - n8n_n8n_network
+
+  skin_web:
+    build:
+      context: ../web
+      args:
+        # Vite inlines this at build time — rebuild the image to change it.
+        VITE_API_BASE_URL: ${PUBLIC_API_URL}
+    container_name: skin_web
+    restart: unless-stopped
+    depends_on:
+      - skin_api
+    ports:
+      - '127.0.0.1:8120:80'
+    networks:
+      - skin_net
+
+volumes:
+  skin_db_data:
+  skin_uploads:
+
+networks:
+  skin_net:
+    driver: bridge
+  # Existing n8n network, so the API can reach the AI workflow by container name.
+  n8n_n8n_network:
+    external: true

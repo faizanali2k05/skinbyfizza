@@ -15,3 +15,10 @@ Thumbs.db
 
 # Node (mobile app has its own .gitignore too)
 node_modules/
+
+# Deploy secrets
+deploy/.env
+
+# Web build output
+web/dist/
+web/node_modules/

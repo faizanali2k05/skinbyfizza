@@ -9,7 +9,30 @@ const { startReminderLoop } = require('./lib/reminders');
 
 const app = express();
 
-app.use(cors()); // public API guarded by JWT; allow app + web origins
+/**
+ * CORS allowlist. The Expo app sends no Origin header (native fetch), so
+ * origin-less requests are allowed; browsers must match CORS_ORIGINS.
+ * Capacitor builds present capacitor://localhost (iOS) or http://localhost
+ * (Android), which is why those belong in the list rather than a cookie-based
+ * scheme that could never work there.
+ */
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true); // native app / server-to-server
+      if (!allowedOrigins.length) return callback(null, true); // unset = permissive (dev)
+      return allowedOrigins.includes(origin)
+        ? callback(null, true)
+        : callback(new Error('Origin not allowed'));
+    },
+    credentials: false, // bearer tokens only — never cookies
+  }),
+);
 app.use(express.json({ limit: '12mb' })); // room for base64 chat images
 
 // Chat media: ensure the folder exists and serve it publicly.
