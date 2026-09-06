@@ -17,9 +17,13 @@ module.exports = {
   accessTtl: 60 * 60 * 24 * 7, // 7 days
   refreshTtl: 60 * 60 * 24 * 60, // 60 days
 
-  // n8n AI-agent webhook — the app's AI consultant is delegated here.
-  // e.g. https://n8n.seemaai.co.uk/webhook/ai/chat  (or the docker gateway URL)
-  n8nAiUrl: process.env.N8N_AI_URL || 'https://n8n.seemaai.co.uk/webhook/ai/chat',
+  // AI consultant. When OPENAI_API_KEY is set the backend calls OpenAI
+  // directly; otherwise it falls back to the n8n AI-agent webhook below.
+  openaiApiKey: process.env.OPENAI_API_KEY || '',
+  openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+
+  // n8n AI-agent webhook — used only when OPENAI_API_KEY is unset.
+  n8nAiUrl: process.env.N8N_AI_URL || 'http://n8n_app:5678/webhook/ai/chat',
 
   // Shared secret the n8n WhatsApp workflow presents to POST /wa/inbound.
   waInboundSecret: process.env.WA_INBOUND_SECRET || '',

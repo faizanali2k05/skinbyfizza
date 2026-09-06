@@ -49,7 +49,10 @@ services:
       # the future native wrap — harmless now, required later).
       CORS_ORIGINS: ${CORS_ORIGINS}
       UPLOADS_DIR: /app/uploads
-      # AI consultant is delegated to the n8n on this box (n8n_n8n_network).
+      # AI consultant: OpenAI directly when the key is present, else the n8n
+      # webhook below. The key never leaves the server.
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       N8N_AI_URL: ${N8N_AI_URL}
       WA_INBOUND_SECRET: ${WA_INBOUND_SECRET}
       WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}

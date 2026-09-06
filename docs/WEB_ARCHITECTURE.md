@@ -189,7 +189,7 @@ Sourced from `api/src/routes/*`.
 | GET | `/notifications` | 🔒 | Feed |
 | POST | `/notifications/:id/read` | 🔒 | Mark read |
 | POST | `/push/register-token` | 🔒 | Currently stores an **Expo** token in `users.expo_push_token` |
-| POST | `/ai/chat` | 🔒 | Proxies to n8n `N8N_AI_URL` |
+| POST | `/ai/chat` | 🔒 | Calls OpenAI directly when `OPENAI_API_KEY` is set; falls back to the n8n webhook (`N8N_AI_URL`) when it isn't |
 | POST | `/wa/inbound` | — | WhatsApp inbound webhook |
 | GET | `/uploads/*` | — | Static media, 30-day cache |
 
