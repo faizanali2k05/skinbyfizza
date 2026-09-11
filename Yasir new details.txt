@@ -23,3 +23,5 @@ Send Yasir the colander about the AI before and after result.
 
 add the filer by location(city) in the "book appointment" so that the doctor can easily check it.
 the ui of the "manage appointment "" assign new" => Full name: City: signature(procedure). the doctor would be able to search the user through number....
+
+hi yasir 
